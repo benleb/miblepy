@@ -208,7 +208,7 @@ class DeviceConfig:
 class Miblepy:
     """Main class of the module."""
 
-    def __init__(self, config_file_path: str = "~/.miblepy.toml", retries: int = DEFAULT_MAX_RETRIES, debug: bool = False):
+    def __init__(self, config_file_path: str = "~/.miblepy.toml", debug: bool = False):
         config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
         self.config = Configuration(config_file_path, debug=debug)
 
