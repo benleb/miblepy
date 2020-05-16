@@ -184,7 +184,7 @@ class bodyMetrics:
 
     # Get water percentage scale
     @staticmethod
-    def getWaterPercentageScale(self):
+    def getWaterPercentageScale():
         return [53, 67]
 
     # bone mass
