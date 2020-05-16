@@ -38,7 +38,7 @@ To support a new device is very easy! Just a single python file should be placed
 * a function with this signature, called by miblepy for each device  
 
 ```python
-def fetch_data(mac: str, topic: str, interface: str) -> Dict[str, Any]
+def fetch_data(mac: str, interface: str) -> Dict[str, Any]
 ```
 
 Check the already available plugins to see some examples.
