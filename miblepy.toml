@@ -1,0 +1,58 @@
+# Template for configuration file of miblepy
+# copy this file to your home directory and rename it to ".miblepy.yaml" (starting with a ".").
+
+[general]
+# Select the bluetooth interface to be used.
+interface = "hci0"
+# path where log file shall be stored, optional
+#logfile = "/tmp/miblepy.log"
+# option for debug logging, optional
+debug = false
+
+
+# mqtt configuration, replace this with the configuration of your mqtt server
+[mqtt]
+#url of your mqtt server, madatory
+server = "your.mqtt-broker.com"
+# port of the mqtt server, optional if using 8883
+port = 8883
+
+# client_id to use with the mqtt server, optional as defaults to unique numeric identifier
+#client_id = miblepy
+
+# credentials for the mqtt server, optional if you do not use authentication
+#username =
+#password =
+
+# If this is enabled, miblepy will announce all plants via the MQTT Discovery
+# feature of Home Assistant in this MQTT prefix. For details see:
+# https://www.home-assistant.io/docs/mqtt/discovery/
+discovery_prefix = "homeassistant"
+# prefix (without trailing /) of the topic where the sensor data will be published, mandatory
+prefix = "miblepy"
+
+# terminate topic with a trailing slash, optional as defaults to True
+#trailing_slash = False
+
+# format for timestamp string using strftime(), optional as defaults to ISO8601 format
+#timestamp_format = "%d/%m/%y %H:%M:%S"
+
+# path to ssl/tls ca file
+#ca_cert = "/etc/ssl/certs/<my ca file.pem>"
+
+
+# sensor configuration, replace this with the configuration of your sensors
+[[sensors.bodycompscale2]]
+mac = "0C:91:41:E2:AA:1E"
+alias = "Mi Body Composition Scale 2"
+
+[[sensors.flowercare]]
+mac = "C4:7C:8D:64:B7:1A"
+alias = "Hochbeet A"
+[[sensors.flowercare]]
+mac = "C4:8D:8D:67:B3:04"
+alias = "Hochbeet B"
+
+[[sensors.lywsd03mmc]]
+mac = "A4:ED:38:FF:19:94"
+alias = "BLE LCD Thermometer"

@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "miblepy"
+version = "0.1.0"
+description = "miblepy fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker in a coordinated, sequential manner."
+authors = ["Ben Lebherz <git@benleb.de>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+bluepy = "^1.3"
+btlewrap = "^0.0.8"
+paho-mqtt = "^1.5.0"
+miflora = "^0.6"
+tomlkit = "^0.6.0"
+click = "^7.1.2"
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+black = "^19.10b0"
+mypy = "^0.770"
+isort = "^4.3.21"
+flake8 = "^3.8.1"
+pycodestyle = "^2.6.0"
+bandit = "^1.6.2"
+
+[tool.poetry.scripts]
+miblepy = 'miblepy.cli:cli'
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
