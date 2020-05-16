@@ -5,12 +5,11 @@
 import logging
 
 from datetime import datetime
-from pprint import pformat
 from typing import Any, Dict
 
 from bluepy import btle
 
-from .. import ATTRS
+from miblepy import ATTRS
 
 
 sensor_data = {}
@@ -31,6 +30,8 @@ def fetch_data(mac: str, topic: str, interface: str, backend: Any = None) -> Dic
             data = sensor_data
     except btle.BTLEDisconnectError as error:
         logging.error(f"btle disconnected: {error}")
+    except Exception as error:
+        logging.exception(f"error when trying to fetch data from {mac}: {error}")
     finally:
         return data
 
@@ -40,16 +41,11 @@ class MiblepyDelegate(btle.DefaultDelegate):
     def __init__(self):
         btle.DefaultDelegate.__init__(self)
 
-    def handleNotification(self, cHandle, data):
+    @staticmethod
+    def handleNotification(cHandle: int, data: bytes):
         global sensor_data
 
-        data: bytes
-
         if cHandle == 54:
-
-            # logging.info(f"{hex(data) = }")
-            # logging.info(f"{cHandle = }")
-            # logging.info(f"{sensor_data = }")
 
             try:
                 sensor_data = {
@@ -59,19 +55,13 @@ class MiblepyDelegate(btle.DefaultDelegate):
                     ATTRS.TIMESTAMP.value: str(datetime.now().isoformat()),
                 }
 
-                logging.info(f"{data.hex(':') = }")
-                logging.info(f"{data.hex(':').split(':') = }")
-                logging.info(f"{str(int.from_bytes(data[0:2], byteorder='little', signed=True)) = }")
-                logging.info(f"{str(int.from_bytes(data[2:3], byteorder='little')) = }")
-                # logging.info(f"{[int.from_bytes(xx, byteorder='little') for xx in data.hex(':').split(':')] = }")
-
-            except Exception as error:
+            except (TypeError, ValueError) as error:
                 logging.error(f"parsing sensor data failed: {error}")
                 logging.error(f"sensor data: {data}")
 
 
 def connect(mac: str, interface: str):
-    """Code """
+    """Connect to device and activate notifications."""
     interface_idx: int = int(interface.replace("hci", ""))
 
     peripheral = btle.Peripheral(mac, iface=interface_idx)

@@ -9,7 +9,7 @@ from typing import Any, Dict
 from btlewrap.bluepy import BluepyBackend
 from miflora.miflora_poller import MiFloraPoller
 
-from .. import ATTRS, MI_BATTERY, MI_CONDUCTIVITY, MI_LIGHT, MI_MOISTURE, MI_TEMPERATURE
+from miblepy import ATTRS, MI_BATTERY, MI_CONDUCTIVITY, MI_LIGHT, MI_MOISTURE, MI_TEMPERATURE
 
 
 SUPPORTED_ATTRS = [ATTRS.VOLTAGE, ATTRS.TEMPERATURE, ATTRS.MOISTURE, ATTRS.CONDUCTIVITY, ATTRS.TIMESTAMP]

@@ -202,7 +202,7 @@ class DeviceConfig:
     @staticmethod
     def get_name_string(sensor_list: List) -> str:
         """Convert a list of sensor objects to a nice string."""
-        return ", ".join([str(sensor.alias) for sensor in sensor_list])
+        return ", ".join((str(sensor.alias) for sensor in sensor_list))
 
 
 class Miblepy:
@@ -278,7 +278,8 @@ class Miblepy:
         msg.wait_for_publish()
         logging.debug(f"sent {data} to topic {topic} - published: {msg.is_published()}")
 
-    def _get_device_topic(self, sensor_config: DeviceConfig, suffix: Optional[str] = None) -> str:
+    @staticmethod
+    def _get_device_topic(sensor_config: DeviceConfig, suffix: Optional[str] = None) -> str:
         device_topic = (
             f"{sensor_config.short_mac}_{sensor_config.alias.replace(' ', '_')}"
             if sensor_config.alias
@@ -315,7 +316,7 @@ class Miblepy:
         )
 
         if not data:
-            logging.warn(f"  no data received from backend {device_backend.__name__} for device {hl(sensor_config.name)} ({sensor_config.mac})!")
+            logging.warning(f"  no data received from backend {device_backend.__name__} for device {hl(sensor_config.name)} ({sensor_config.mac})!")
             return None
 
         mqtt_device_suffix = data.get(ATTRS.MQTT_SUFFIX.value, None)
@@ -358,7 +359,7 @@ class Miblepy:
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
                 logging.info("")
-                logging.info(f"try {retry_count}/{max_retries} for {', '.join([hl(str(sensor.alias)) for sensor in sensors_list])} in {timeout}s")
+                logging.info(f"try {retry_count}/{max_retries} for {', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {timeout}s")
                 time.sleep(timeout)
 
                 # exponential backoff-time
