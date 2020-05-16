@@ -32,7 +32,8 @@ class bodyMetrics:
         #     raise ValueError(f"Impedance too high ({self.impedance} > {LIMIT_IMPEDANCE})")
 
     # set the value to a boundary if it overflows
-    def check_bounds(self, value, minimum, maximum):
+    @staticmethod
+    def check_bounds(value, minimum, maximum):
         if value < minimum:
             return minimum
         elif value > maximum:
@@ -182,6 +183,7 @@ class bodyMetrics:
         return self.check_bounds(waterPercentage * coefficient, 35, 75)
 
     # Get water percentage scale
+    @staticmethod
     def getWaterPercentageScale(self):
         return [53, 67]
 
@@ -285,7 +287,8 @@ class bodyMetrics:
         return self.check_bounds(vfal, 1, 50)
 
     # Get visceral fat scale
-    def getVisceralFatScale(self):
+    @staticmethod
+    def getVisceralFatScale():
         return [10, 15]
 
     # Get BMI
@@ -295,7 +298,8 @@ class bodyMetrics:
         )
 
     # Get BMI scale
-    def getBMIScale(self):
+    @staticmethod
+    def getBMIScale():
         # Replaced library's version by mi fit scale, it seems better
         return [18.5, 25, 28, 32]
 
@@ -330,7 +334,8 @@ class bodyMetrics:
         return proteinPercentage
 
     # Get protein scale (hardcoded in mi fit)
-    def getProteinPercentageScale(self):
+    @staticmethod
+    def getProteinPercentageScale():
         return [16, 20]
 
     # Get body type (out of nine possible)
@@ -350,7 +355,8 @@ class bodyMetrics:
             return 1 + (factor * 3)
 
     # Return body type scale
-    def getBodyTypeScale(self):
+    @staticmethod
+    def getBodyTypeScale():
         return [
             "obese",
             "overweight",
