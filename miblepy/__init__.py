@@ -121,21 +121,21 @@ class Configuration:
         self.max_retries: str = config_general.get("max_retries", DEFAULT_MAX_RETRIES)
 
         #  mqtt
-        mqtt: Dict[str, Any] = {}
+        mqtt_settings: Dict[str, Any] = {}
         config_mqtt = config_file.get("mqtt")
         if "server" not in config_mqtt:
             logging.error("no mqtt server")
         else:
-            mqtt["server"]: str = config_mqtt.get("server")
-            mqtt["port"]: int = config_mqtt.get("port", 8883)
-            mqtt["client_id"]: Optional[str] = config_mqtt.get("client_id")
-            mqtt["user"]: Optional[str] = config_mqtt.get("username")
-            mqtt["password"]: Optional[str] = config_mqtt.get("password")
-            mqtt["discovery_prefix"]: Optional[str] = config_mqtt.get("discovery_prefix")
-            mqtt["prefix"] = config_mqtt.get("prefix", "miblepy/")
-            mqtt["trailing_slash"]: bool = config_mqtt.get("trailing_slash", False)
-            mqtt["timestamp_format"]: Optional[str] = config_mqtt.get("timestamp_format")
-            mqtt["ca_cert"]: Optional[str] = config_mqtt.get("ca_cert")
+            mqtt_settings["server"]: str = config_mqtt.get("server")
+            mqtt_settings["port"]: int = config_mqtt.get("port", 8883)
+            mqtt_settings["client_id"]: Optional[str] = config_mqtt.get("client_id")
+            mqtt_settings["user"]: Optional[str] = config_mqtt.get("username")
+            mqtt_settings["password"]: Optional[str] = config_mqtt.get("password")
+            mqtt_settings["discovery_prefix"]: Optional[str] = config_mqtt.get("discovery_prefix")
+            mqtt_settings["prefix"] = config_mqtt.get("prefix", "miblepy/")
+            mqtt_settings["trailing_slash"]: bool = config_mqtt.get("trailing_slash", False)
+            mqtt_settings["timestamp_format"]: Optional[str] = config_mqtt.get("timestamp_format")
+            mqtt_settings["ca_cert"]: Optional[str] = config_mqtt.get("ca_cert")
 
         # sensors
         if "sensors" not in config_file:
@@ -151,7 +151,7 @@ class Configuration:
                     )
 
         self.sensors = sensors
-        self.mqtt = mqtt
+        self.mqtt = mqtt_settings
 
         def __str__(self) -> str:
             return self.config_file
