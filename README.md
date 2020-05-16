@@ -9,14 +9,18 @@ Currently this is a private project tailored to my needs - but open for PRs :)
 
 ## Usage
 
+Run `miblepy` to start fetching from configured sensors, try `miblepy --help` to get more options.
+
 As this is just a private project, there is not much documentation - besides the code itself ;)
 
+### Install via pip
+
+### Manual install
 * clone this repo & cd to it `git clone https://github.com/benleb/miblepy.git && cd miblepy`
 * copy `miblepy.toml` to `~/.miblepy.toml` and adjust settings
 * install requirements via
   * poetry: `poetry install`
   * pip: `pip install --upgrade .`
-* run `miblepy` to start fetching from configured sensors
 
 ---
 
@@ -30,7 +34,7 @@ To continously fetch data from sensors you can choose...
 
 * VegTrug / Mi Flora plant sensors (Flower Care)
 * (Xiaomi?) Mijia Bluetooth Temperature Humidity sensors with LCD (LYWSD03MMC)
-* ~~Xiaomi Mi Body Composition Scale 2 (XMTZC05HM)~~ WIP
+* ~~Xiaomi Mi Body Composition Scale 2 (XMTZC05HM)~~ **WIP**
 
 ## Support a new device
 
