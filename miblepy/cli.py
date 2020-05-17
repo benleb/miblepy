@@ -24,7 +24,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     type=click.IntRange(0, 10, clamp=True),
     help="times we try to get data from a sensor",
 )
-@click.option("--version", default=False, is_flag=True, help=f"show {__name__} version")
+@click.option("--version", default=False, is_flag=True, help=f"show {miblepy_name} version")
 @click.option("-d", "--debug", default=False, is_flag=True, help="enable debug output")
 def cli(config: str, retries: int, version: bool, debug: bool):
     """fetch data from ble sensors and push it to a mqtt broker
