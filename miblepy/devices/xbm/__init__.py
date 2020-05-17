@@ -182,11 +182,6 @@ class bodyMetrics:
             waterPercentage = 75
         return self.check_bounds(waterPercentage * coefficient, 35, 75)
 
-    # Get water percentage scale
-    @staticmethod
-    def getWaterPercentageScale():
-        return [53, 67]
-
     # bone mass
     def getBoneMass(self):
         if self.sex == "female":
@@ -286,11 +281,6 @@ class bodyMetrics:
 
         return self.check_bounds(vfal, 1, 50)
 
-    # Get visceral fat scale
-    @staticmethod
-    def getVisceralFatScale():
-        return [10, 15]
-
     # Get BMI
     def getBMI(self):
         return self.check_bounds(
@@ -333,11 +323,6 @@ class bodyMetrics:
         proteinPercentage -= floor((self.getBoneMass() / self.weight * 100) * 100) / 100
         return proteinPercentage
 
-    # Get protein scale (hardcoded in mi fit)
-    @staticmethod
-    def getProteinPercentageScale():
-        return [16, 20]
-
     # Get body type (out of nine possible)
     def getBodyType(self):
         if self.getFatPercentage() > self.getFatPercentageScale()[2]:
@@ -353,18 +338,3 @@ class bodyMetrics:
             return factor * 3
         else:
             return 1 + (factor * 3)
-
-    # Return body type scale
-    @staticmethod
-    def getBodyTypeScale():
-        return [
-            "obese",
-            "overweight",
-            "thick-set",
-            "lack-exerscise",
-            "balanced",
-            "balanced-muscular",
-            "skinny",
-            "balanced-skinny",
-            "skinny-muscular",
-        ]
