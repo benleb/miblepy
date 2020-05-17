@@ -12,7 +12,7 @@ from bluepy import btle
 from miblepy import ATTRS
 
 
-SUPPORTED_ATTRS = [ATTRS.VOLTAGE, ATTRS.TEMPERATURE, ATTRS.HUMIDITY, ATTRS.TIMESTAMP]
+SUPPORTED_ATTRS = [ATTRS.BATTERY, ATTRS.VOLTAGE, ATTRS.TEMPERATURE, ATTRS.HUMIDITY, ATTRS.TIMESTAMP]
 
 
 def fetch_data(mac: str, interface: str, **kwargs) -> Dict[str, Any]:
@@ -45,8 +45,11 @@ class MiblepyDelegate(btle.DefaultDelegate):
         if cHandle == 54:
 
             try:
+                voltage = int.from_bytes(data[3:5], byteorder="little") / 1000.0
                 self.sensor_data.update({
-                    ATTRS.VOLTAGE.value: str(int.from_bytes(data[3:5], byteorder="little") / 1000.0),
+                    # 3.1 or above --> 100% 2.1 --> 0 %
+                    ATTRS.BATTERY.value: min(int(round((voltage - 2.1), 2) * 100), 100),
+                    ATTRS.VOLTAGE.value: str(voltage),
                     ATTRS.TEMPERATURE.value: str(int.from_bytes(data[0:2], byteorder="little", signed=True) / 100),
                     ATTRS.HUMIDITY.value: str(int.from_bytes(data[2:3], byteorder="little")),
                     ATTRS.TIMESTAMP.value: str(datetime.now().isoformat()),
