@@ -71,8 +71,6 @@ UNIT_OF_MEASUREMENT = {
     ATTRS.TIMESTAMP: "s",
     ATTRS.HEIGHT: "cm",
     ATTRS.WEIGHT: "kg",
-    ATTRS.UNIT: None,
-    ATTRS.USER: None,
 }
 
 
