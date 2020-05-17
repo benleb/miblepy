@@ -145,7 +145,7 @@ class Configuration:
                 for sensor in config_file["sensors"][device_type]:
                     fail_silent = "fail_silent" in sensor
                     sensors.append(
-                        DeviceConfig(sensor["mac"], sensor["alias"], device_type, fail_silent)
+                        DeviceConfig(sensor, device_type, fail_silent)
                     )
 
         self.sensors = sensors
@@ -171,15 +171,19 @@ class DeviceConfig:
     """Stores the configuration of a sensor."""
 
     def __init__(
-        self, mac: str, alias: str = None, device_type: str = None, fail_silent: bool = False
+        self, config: Dict[str, Any], device_type: str = None, fail_silent: bool = False
     ):
-        if not mac:
+        if "mac" not in config:
             logging.exception("mac of sensor must not be None")
 
-        self.mac = mac
-        self.alias = alias
+        self.mac = config.pop("mac")
+
+        self.alias = config.get("alias", None)
         self.device_type = device_type
         self.fail_silent = fail_silent
+
+        # config file settings
+        self.config = config
 
     @property
     def name(self) -> str:
@@ -233,7 +237,6 @@ class Miblepy:
             self.mqtt_client.disconnect()
             self.connected = False
         self.mqtt_client.loop_stop()
-        logging.debug("")
         logging.debug(
             f"disconnected MQTT connection to server {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))}"
         )
@@ -337,16 +340,13 @@ class Miblepy:
         # initial timeout in seconds
         timeout = 1
 
-        # number of retries
-        max_retries = self.config.max_retries
-
         retry_count = 1
 
         while not self.connected:
             self.start_client()
             time.sleep(0.1)
 
-        while retry_count <= max_retries and sensors_list:
+        while retry_count <= self.config.max_retries and sensors_list:
 
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
@@ -403,11 +403,14 @@ class Miblepy:
 
             payload = {
                 "state_topic": state_topic,
-                "unit_of_measurement": UNIT_OF_MEASUREMENT[attribute],
                 "value_template": "{{value_json." + attribute.value + "}}",
+                "unique_id": f"{self._get_device_topic(sensor_config, suffix)}_{attribute.value}",
             }
+            if attribute in UNIT_OF_MEASUREMENT:
+                payload["unit_of_measurement"] = UNIT_OF_MEASUREMENT[attribute]
+
             if sensor_config.alias:
-                payload["name"] = f"{sensor_config.alias} {attribute.value}"
+                payload["name"] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''} {attribute.value.capitalize()}"
 
             if DEVICE_CLASS[attribute]:
                 payload["device_class"] = DEVICE_CLASS[attribute]
