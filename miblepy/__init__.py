@@ -348,8 +348,6 @@ class Miblepy:
 
         while retry_count <= self.config.max_retries and sensors_list:
 
-            logging.info(f"{retry_count = } | {self.config.max_retries = }")
-
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
                 logging.info(f"try {retry_count}/{self.config.max_retries} for {', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {timeout}s")
