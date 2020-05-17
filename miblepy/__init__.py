@@ -23,7 +23,7 @@ MI_CONDUCTIVITY = "conductivity"
 MI_BATTERY = "battery"
 
 DEVICE_PREFIX = "miblepy_"
-DEFAULT_MAX_RETRIES = 1
+DEFAULT_MAX_RETRIES = 3
 
 DEFAULT_CONFIG_FILE = f"{os.environ.get('HOME', '')}/.miblepy.toml"
 
@@ -347,6 +347,8 @@ class Miblepy:
             time.sleep(0.1)
 
         while retry_count <= self.config.max_retries and sensors_list:
+
+            logging.info(f"{retry_count = } | {self.config.max_retries = }")
 
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
