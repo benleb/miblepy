@@ -313,7 +313,7 @@ class Miblepy:
             logging.exception(f"required module {sensor_config.device_type} not found: {error}")
             return
 
-        data = device_backend.fetch_data(sensor_config.mac, self.config.interface)
+        data = device_backend.fetch_data(sensor_config.mac, self.config.interface, **sensor_config.config)
 
         if not data:
             logging.warning(f"  no data received from backend {device_backend.__name__} for device {hl(sensor_config.name)} ({sensor_config.mac})!")

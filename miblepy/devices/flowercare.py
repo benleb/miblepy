@@ -15,7 +15,7 @@ from miblepy import ATTRS, MI_BATTERY, MI_CONDUCTIVITY, MI_LIGHT, MI_MOISTURE, M
 SUPPORTED_ATTRS = [ATTRS.VOLTAGE, ATTRS.TEMPERATURE, ATTRS.MOISTURE, ATTRS.CONDUCTIVITY, ATTRS.TIMESTAMP]
 
 
-def fetch_data(mac: str, interface: str) -> Dict[str, Any]:
+def fetch_data(mac: str, interface: str, **kwargs) -> Dict[str, Any]:
     """Get data from one Sensor."""
 
     poller = MiFloraPoller(mac, BluepyBackend, adapter=interface, retries=1)

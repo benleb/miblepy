@@ -15,7 +15,7 @@ from miblepy import ATTRS
 SUPPORTED_ATTRS = [ATTRS.VOLTAGE, ATTRS.TEMPERATURE, ATTRS.HUMIDITY, ATTRS.TIMESTAMP]
 
 
-def fetch_data(mac: str, interface: str) -> Dict[str, Any]:
+def fetch_data(mac: str, interface: str, **kwargs) -> Dict[str, Any]:
     """Get data from one Sensor."""
 
     sensor_data = {}
