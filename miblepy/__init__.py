@@ -157,7 +157,7 @@ class Configuration:
     @staticmethod
     def _configure_logging(config):
         timeform = "%Y-%m-%d %H:%M:%S"
-        logform = "%(asctime)s %(levelname)-7s %(message)s"
+        logform = "%(asctime)s %(levelname)s %(message)s"
         loglevel = logging.INFO if not config["debug"] else logging.DEBUG
 
         if "logfile" in config:
@@ -210,22 +210,17 @@ class Miblepy:
         config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
         self.config = Configuration(config_file_path, debug=debug)
 
-        logging.info("")
         logging.info(f"{hl(__name__)} {__version__}")
-        logging.info("")
-        logging.info(f"config file: {hl(config_file_path)}")
+        logging.info(f"  config file: {hl(config_file_path)}")
+        logging.info(f"  max retries: {hl(self.config.max_retries)}")
         logging.info(f"  interface: /dev/{hl(self.config.interface)}")
-        logging.info(f"      debug: {hl(self.config.debug)}")
-        logging.debug("")
+        logging.info(f"  debug: {hl(self.config.debug)}")
         logging.debug(f"configuration: {self.config.config_file}")
-        logging.info("")
 
         self.mqtt_client = None
         self.connected = False
 
         self.config.max_retries = retries
-
-        # sys.exit(0)
 
     def start_client(self):
         """Start the mqtt client."""
@@ -254,7 +249,7 @@ class Miblepy:
 
         def _on_connect(client, _, flags, return_code):
             self.connected = True
-            logging.info(
+            logging.debug(
                 f"MQTT connection to {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))} established"  #: {mqtt.connack_string(return_code)}"
             )
 
@@ -302,7 +297,6 @@ class Miblepy:
 
     def fetch(self, sensor_config: DeviceConfig) -> Dict[str, Any]:
         """Get data from one Sensor."""
-        logging.info("")
         logging.info(f"fetching data from sensor {hl(sensor_config.name)} ({sensor_config.mac})...")
 
         try:
@@ -314,7 +308,7 @@ class Miblepy:
         data = device_backend.fetch_data(sensor_config.mac, self.config.interface, **sensor_config.config)
 
         if not data:
-            logging.warning(f"  no data received from backend {device_backend.__name__} for device {hl(sensor_config.name)} ({sensor_config.mac})!")
+            logging.error(f"  no data received from backend {device_backend.__name__} for device {hl(sensor_config.name)} ({sensor_config.mac})!")
             return None
 
         mqtt_device_suffix = data.get(ATTRS.MQTT_SUFFIX.value, None)
@@ -356,8 +350,7 @@ class Miblepy:
 
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
-                logging.info("")
-                logging.info(f"try {retry_count}/{max_retries} for {', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {timeout}s")
+                logging.info(f"try {retry_count}/{self.config.max_retries} for {', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {timeout}s")
                 time.sleep(timeout)
 
                 # exponential backoff-time
@@ -397,8 +390,6 @@ class Miblepy:
                         print(msg)
 
             sensors_list = failed_sensors_list
-
-        logging.info("")
 
         # return sensors that could not be processed after max_retries
         return failed_sensors_list
