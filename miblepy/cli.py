@@ -2,8 +2,14 @@
 
 import click
 
-from miblepy import (DEFAULT_CONFIG_FILE, DEFAULT_MAX_RETRIES, Miblepy,
-                     __name__ as miblepy_name, __version__ as miblepy_version, hl)
+from miblepy import (
+    DEFAULT_CONFIG_FILE,
+    DEFAULT_MAX_RETRIES,
+    Miblepy,
+    __name__ as miblepy_name,
+    __version__ as miblepy_version,
+    hl,
+)
 
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -11,7 +17,12 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "-c", "--config", default=DEFAULT_CONFIG_FILE, type=click.Path(exists=True), help="path to config file",
+    "-c",
+    "--config",
+    default=DEFAULT_CONFIG_FILE,
+    type=click.Path(file_okay=True),
+    required=False,
+    help="path to config file",
 )
 @click.option(
     "-r",
