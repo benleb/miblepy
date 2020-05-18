@@ -1,4 +1,3 @@
-
 # supported devices
 #   VegTrug Plant Sensor (???)
 #   Mi Flora? (???)
@@ -12,10 +11,17 @@ from miflora.miflora_poller import MiFloraPoller
 from miblepy import ATTRS, MI_BATTERY, MI_CONDUCTIVITY, MI_LIGHT, MI_MOISTURE, MI_TEMPERATURE
 
 
-SUPPORTED_ATTRS = [ATTRS.BRIGHTNESS, ATTRS.BATTERY, ATTRS.TEMPERATURE, ATTRS.MOISTURE, ATTRS.CONDUCTIVITY, ATTRS.TIMESTAMP]
+SUPPORTED_ATTRS = [
+    ATTRS.BRIGHTNESS,
+    ATTRS.BATTERY,
+    ATTRS.TEMPERATURE,
+    ATTRS.MOISTURE,
+    ATTRS.CONDUCTIVITY,
+    ATTRS.TIMESTAMP,
+]
 
 
-def fetch_data(mac: str, interface: str, **kwargs) -> Dict[str, Any]:
+def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
     """Get data from one Sensor."""
 
     poller = MiFloraPoller(mac, BluepyBackend, adapter=interface, retries=1)

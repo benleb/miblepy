@@ -1,4 +1,3 @@
-
 __version__ = "0.1.0"
 
 import importlib
@@ -14,6 +13,9 @@ from typing import Any, Dict, List, Optional, Set, Union
 import paho.mqtt.client as mqtt
 
 from tomlkit import parse
+from tomlkit.toml_document import TOMLDocument
+
+from bluepy import btle
 
 
 MI_TEMPERATURE = "temperature"
@@ -26,6 +28,11 @@ DEVICE_PREFIX = "miblepy_"
 DEFAULT_MAX_RETRIES = 3
 
 DEFAULT_CONFIG_FILE = f"{os.environ.get('HOME', '')}/.miblepy.toml"
+
+# create logger
+timeform = "%Y-%m-%d %H:%M:%S"
+logform = "{asctime} {levelname:6s} {message}"
+logging.basicConfig(level=logging.INFO, datefmt=timeform, format=logform, style="{")
 
 
 class ATTRS(Enum):
@@ -103,8 +110,8 @@ class Configuration:
         with open(config_file_path, "r") as file:
             config_file = parse(file.read())
 
-        self.config_file = config_file
-        self.config = {}
+        self.config_file: TOMLDocument = config_file
+        self.config: Dict[str, Any] = {}
 
         config_general = config_file.get("general")
 
@@ -112,11 +119,14 @@ class Configuration:
         if debug:
             config_general["debug"] = debug
         self.debug: str = config_general.get("debug", False)
-        self._configure_logging(config_general)
+
+        if self.debug:
+            logging.getLogger().setLevel(logging.DEBUG)
+        # self._configure_logging(config_general)
 
         # ble interface
         self.interface: str = config_general.get("interface", "hci0")
-        self.max_retries: str = config_general.get("max_retries", DEFAULT_MAX_RETRIES)
+        self.max_retries: int = config_general.get("max_retries", DEFAULT_MAX_RETRIES)
 
         #  mqtt
         mqtt_settings: Dict[str, Any] = {}
@@ -124,16 +134,16 @@ class Configuration:
         if "server" not in config_mqtt:
             logging.error("no mqtt server")
         else:
-            mqtt_settings["server"]: str = config_mqtt.get("server")
-            mqtt_settings["port"]: int = config_mqtt.get("port", 8883)
-            mqtt_settings["client_id"]: Optional[str] = config_mqtt.get("client_id")
-            mqtt_settings["user"]: Optional[str] = config_mqtt.get("username")
-            mqtt_settings["password"]: Optional[str] = config_mqtt.get("password")
-            mqtt_settings["discovery_prefix"]: Optional[str] = config_mqtt.get("discovery_prefix")
+            mqtt_settings["server"] = config_mqtt.get("server")
+            mqtt_settings["port"] = config_mqtt.get("port", 8883)
+            mqtt_settings["client_id"] = config_mqtt.get("client_id")
+            mqtt_settings["user"] = config_mqtt.get("username")
+            mqtt_settings["password"] = config_mqtt.get("password")
+            mqtt_settings["discovery_prefix"] = config_mqtt.get("discovery_prefix")
             mqtt_settings["prefix"] = config_mqtt.get("prefix", "miblepy/")
-            mqtt_settings["trailing_slash"]: bool = config_mqtt.get("trailing_slash", False)
-            mqtt_settings["timestamp_format"]: Optional[str] = config_mqtt.get("timestamp_format")
-            mqtt_settings["ca_cert"]: Optional[str] = config_mqtt.get("ca_cert")
+            mqtt_settings["trailing_slash"] = config_mqtt.get("trailing_slash", False)
+            mqtt_settings["timestamp_format"] = config_mqtt.get("timestamp_format")
+            mqtt_settings["ca_cert"] = config_mqtt.get("ca_cert")
 
         # sensors
         if "sensors" not in config_file:
@@ -144,46 +154,30 @@ class Configuration:
             for device_type in config_file.get("sensors", {}):
                 for sensor in config_file["sensors"][device_type]:
                     fail_silent = "fail_silent" in sensor
-                    sensors.append(
-                        DeviceConfig(sensor, device_type, fail_silent)
-                    )
+                    sensors.append(DeviceConfig(sensor, device_type, fail_silent))
 
         self.sensors = sensors
         self.mqtt = mqtt_settings
 
-        def __str__(self) -> str:
-            return self.config_file
-
-    @staticmethod
-    def _configure_logging(config):
-        timeform = "%Y-%m-%d %H:%M:%S"
-        logform = "%(asctime)s %(levelname)s %(message)s"
-        loglevel = logging.INFO if not config["debug"] else logging.DEBUG
-
-        if "logfile" in config:
-            logfile = os.path.abspath(os.path.expanduser(config["logfile"]))
-            logging.basicConfig(filename=logfile, level=loglevel, datefmt=timeform, format=logform)
-        else:
-            logging.basicConfig(level=loglevel, datefmt=timeform, format=logform)
+    def __str__(self) -> str:
+        return str(self.config_file.as_string())
 
 
 class DeviceConfig:
     """Stores the configuration of a sensor."""
 
-    def __init__(
-        self, config: Dict[str, Any], device_type: str = None, fail_silent: bool = False
-    ):
+    def __init__(self, config: Dict[str, Any], device_type: str, fail_silent: bool = False):
         if "mac" not in config:
             logging.exception("mac of sensor must not be None")
 
-        self.mac = config.pop("mac")
+        self.mac: str = config.pop("mac")
 
-        self.alias = config.get("alias", None)
+        self.alias: Optional[str] = config.get("alias", None)
         self.device_type = device_type
         self.fail_silent = fail_silent
 
         # config file settings
-        self.config = config
+        self.config: Dict[str, Any] = config
 
     @property
     def name(self) -> str:
@@ -201,48 +195,55 @@ class DeviceConfig:
     def __str__(self) -> str:
         return f"{self.alias if self.alias else self.mac}{' (fail silent)' if self.fail_silent else ''}"
 
-    @staticmethod
-    def get_name_string(sensor_list: List) -> str:
-        """Convert a list of sensor objects to a nice string."""
-        return ", ".join((str(sensor.alias) for sensor in sensor_list))
+    # @staticmethod
+    # def get_name_string(sensor_list: List[A]) -> sntr:
+    #     """Convert a list of sensor objects to a nice string."""
+    #     return ", ".join((str(sensor.alias) for sensor in sensor_list))
 
 
 class Miblepy:
     """Main class of the module."""
 
-    def __init__(self, config_file_path: str = "~/.miblepy.toml", retries: int = DEFAULT_MAX_RETRIES, debug: bool = False):
+    def __init__(
+        self, config_file_path: str = "~/.miblepy.toml", retries: int = DEFAULT_MAX_RETRIES, debug: bool = False,
+    ):
         config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
         self.config = Configuration(config_file_path, debug=debug)
 
-        logging.info(f"{hl(__name__)} {__version__}")
-        logging.info(f"  config file: {hl(config_file_path)}")
-        logging.info(f"  max retries: {hl(self.config.max_retries)}")
-        logging.info(f"  interface: /dev/{hl(self.config.interface)}")
-        logging.info(f"  debug: {hl(self.config.debug)}")
-        logging.debug(f"configuration: {self.config.config_file}")
-
-        self.mqtt_client = None
+        self.config.max_retries = retries
+        self.mqtt_client: Optional[mqtt.Client] = None
         self.connected = False
 
-        self.config.max_retries = retries
+        logging.info(
+            f"{hl(__name__)} {__version__} | config file: {hl(config_file_path)} | "
+            f"interface: /dev/{hl(self.config.interface)} | "
+            f"debug: {hl(self.config.debug)}"
+        )
+        logging.info(
+            f"starting to fetch from {hl(len(self.config.sensors))} sensors "
+            f"of ({hl(len(self.config.config_file['sensors']))} types) | max retries: {hl(self.config.max_retries)}"
+        )
+        logging.debug(f"configuration: {self.config.config_file}")
 
-    def start_client(self):
+    def start_client(self) -> None:
         """Start the mqtt client."""
         if not self.connected:
             self._start_client()
 
-    def stop_client(self):
+    def stop_client(self) -> None:
         """Stop the mqtt client."""
-        if self.connected:
-            self.mqtt_client.disconnect()
-            self.connected = False
-        self.mqtt_client.loop_stop()
-        logging.debug(
-            f"disconnected MQTT connection to server {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))}"
-        )
+        if self.mqtt_client:
+            if self.connected:
+                self.mqtt_client.disconnect()
+                self.connected = False
+            self.mqtt_client.loop_stop()
+            logging.debug(
+                f"disconnected MQTT connection to server "
+                f"{hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))}"
+            )
 
-    def _start_client(self):
-        self.mqtt_client: mqtt.Client = mqtt.Client(self.config.mqtt["client_id"])
+    def _start_client(self) -> None:
+        self.mqtt_client = mqtt.Client(self.config.mqtt["client_id"])
 
         if self.config.mqtt["user"]:
             self.mqtt_client.username_pw_set(self.config.mqtt["user"], self.config.mqtt["password"])
@@ -250,31 +251,26 @@ class Miblepy:
         if self.config.mqtt["ca_cert"]:
             self.mqtt_client.tls_set(self.config.mqtt["ca_cert"], cert_reqs=mqtt.ssl.CERT_REQUIRED)
 
-        def _on_connect(client, _, flags, return_code):
+        def _on_connect(client: Any, _: Any, flags: Any, return_code: int) -> None:
             self.connected = True
             logging.debug(
-                f"MQTT connection to {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))} established"  #: {mqtt.connack_string(return_code)}"
+                f"MQTT connection to {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))} established"
             )
 
         self.mqtt_client.on_connect = _on_connect
 
-        logging.debug(
-            f"MQTT connecting to {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))}..."
-        )
+        logging.debug(f"MQTT connecting to {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))}...")
         self.mqtt_client.connect(str(self.config.mqtt["server"]), int(self.config.mqtt["port"]), 60)
         self.mqtt_client.loop_start()
 
-    def _publisher(self, topic: str, data: str):
-        # state_topic = state_topic.replace(" ", "_")
-
+    def _publisher(self, topic: str, data: Dict[str, Any]) -> None:
         if self.config.mqtt["timestamp_format"]:
             data["timestamp"] = datetime.now().strftime(self.config.mqtt["timestamp_format"])
 
-        msg: mqtt.MQTTMessageInfo = self.mqtt_client.publish(
-            topic, json.dumps(data), qos=1, retain=True
-        )
-        msg.wait_for_publish()
-        logging.debug(f"sent {data} to topic {topic} - published: {msg.is_published()}")
+        if self.mqtt_client:
+            msg: mqtt.MQTTMessageInfo = self.mqtt_client.publish(topic, json.dumps(data), qos=1, retain=True)
+            msg.wait_for_publish()
+            logging.debug(f"sent {data} to topic {topic} - published: {msg.is_published()}")
 
     @staticmethod
     def _get_device_topic(sensor_config: DeviceConfig, suffix: Optional[str] = None) -> str:
@@ -292,7 +288,7 @@ class Miblepy:
 
         return f"{self.config.mqtt['prefix']}/{device_topic}{'/' if self.config.mqtt['trailing_slash'] else ''}"
 
-    def _get_announce_topic(self, sensor_config: str, attribute: str, suffix: Optional[str] = None) -> str:
+    def _get_announce_topic(self, sensor_config: DeviceConfig, attribute: str, suffix: Optional[str] = None) -> str:
         """Construct announce topic to publish to."""
         device_topic = self._get_device_topic(sensor_config, suffix)
 
@@ -300,40 +296,54 @@ class Miblepy:
 
     def fetch(self, sensor_config: DeviceConfig) -> Dict[str, Any]:
         """Get data from one Sensor."""
-        logging.info(f"fetching data from sensor {hl(sensor_config.name)} ({sensor_config.mac})...")
+        logging.info(f"· {hl(sensor_config.name)} ({sensor_config.mac}): fetching data from sensor...")
+
+        data: Dict[str, Any] = {}
 
         try:
             device_backend = importlib.import_module(f"miblepy.devices.{sensor_config.device_type}")
         except (ModuleNotFoundError, ImportError) as error:
-            logging.exception(f"required module {sensor_config.device_type} not found: {error}")
-            return
+            logging.exception(
+                f"· {hl(sensor_config.name)}: required module {sensor_config.device_type} not found: {error}"
+            )
+            return data
 
-        data = device_backend.fetch_data(sensor_config.mac, self.config.interface, **sensor_config.config)
+        try:
+            data = device_backend.fetch_data(  # type: ignore
+                sensor_config.mac,
+                self.config.interface,
+                **sensor_config.config
+            )
+        except btle.BTLEDisconnectError as error:
+            logging.error(f"· {hl(sensor_config.name)}: ble disconnected: {error}")
+        except Exception as error:
+            logging.error(f"· {hl(sensor_config.name)}: error when trying to fetch data: {error}")
 
         if not data:
-            logging.error(f"  no data received from backend {device_backend.__name__} for device {hl(sensor_config.name)} ({sensor_config.mac})!")
-            return None
+            logging.error(
+                f"· {hl(sensor_config.name)}: no data received from backend {device_backend.__name__} "
+                f"for device {hl(sensor_config.name)} ({sensor_config.mac})!"
+            )
+            return data
 
         mqtt_device_suffix = data.get(ATTRS.MQTT_SUFFIX.value, None)
         state_topic = self._get_state_topic(sensor_config, mqtt_device_suffix)
 
         self.announce_sensor(
-            device_backend.SUPPORTED_ATTRS,
-            sensor_config,
-            state_topic,
-            suffix=mqtt_device_suffix
+            device_backend.SUPPORTED_ATTRS, sensor_config, state_topic, suffix=mqtt_device_suffix,  # type: ignore
         )
         logging.info(
-            f"  sent sensor configuration to {hl(self._get_announce_topic(sensor_config, '<attribute>', suffix=mqtt_device_suffix))}"
+            f"· {hl(sensor_config.name)}: sent sensor configuration to "
+            f"{hl(self._get_announce_topic(sensor_config, '<attribute>', suffix=mqtt_device_suffix))}"
         )
 
         # push sensor values
         self._publisher(state_topic, data)
-        logging.info(f"  sent sensor values to {hl(state_topic)}")
+        logging.info(f"· {hl(sensor_config.name)}: sent sensor values to {hl(state_topic)}")
 
         return data
 
-    def go(self):
+    def go(self) -> Set[DeviceConfig]:
         """Get data from all sensors."""
         sensors_list: Set[DeviceConfig] = set(self.config.sensors)
 
@@ -346,11 +356,17 @@ class Miblepy:
             self.start_client()
             time.sleep(0.1)
 
+        # logger = logging.getLogger()
+        # handler = logging.StreamHandler()
+
         while retry_count <= self.config.max_retries and sensors_list:
 
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
-                logging.info(f"try {retry_count}/{self.config.max_retries} for {', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {timeout}s")
+                logging.info(
+                    f"try {retry_count}/{self.config.max_retries} for "
+                    f"{', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {hl(timeout)}s"
+                )
                 time.sleep(timeout)
 
                 # exponential backoff-time
@@ -375,16 +391,14 @@ class Miblepy:
                     # try again in the next round
                     failed_sensors_list.add(sensor)
 
-                    msg = "could not read data from {} ({}) with reason: {}".format(
-                        sensor.mac, sensor.alias, str(exception)
-                    )
+                    msg = f"{hl(sensor.config.name)}: could not read data with reason: {str(exception)}"  # type: ignore
 
                     if sensor.fail_silent:
                         logging.error(msg)
-                        logging.warning(
-                            "fail_silent is set for sensor %s, so not raising an exception.",
-                            sensor.alias,
-                        )
+                        # logging.warning(
+                        #     "fail_silent is set for sensor %s, so not raising an exception.",
+                        #     sensor.alias,
+                        # )
                     else:
                         logging.exception(msg)
                         print(msg)
@@ -395,7 +409,11 @@ class Miblepy:
         return failed_sensors_list
 
     def announce_sensor(
-        self, supported_attributes: List[ATTRS], sensor_config: DeviceConfig, state_topic: str, suffix: Optional[str] = None
+        self,
+        supported_attributes: List[ATTRS],
+        sensor_config: DeviceConfig,
+        state_topic: str,
+        suffix: Optional[str] = None,
     ) -> None:
         """Announce the sensor via Home Assistant MQTT Discovery: https://www.home-assistant.io/docs/mqtt/discovery/"""
 
@@ -410,12 +428,13 @@ class Miblepy:
                 payload["unit_of_measurement"] = UNIT_OF_MEASUREMENT[attribute]
 
             if sensor_config.alias:
-                payload["name"] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''} {attribute.value.capitalize()}"
+                payload[
+                    "name"
+                ] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''} {attribute.value.capitalize()}"
 
             if DEVICE_CLASS[attribute]:
                 payload["device_class"] = DEVICE_CLASS[attribute]
 
             announce_topic = self._get_announce_topic(sensor_config, attribute.value, suffix=suffix)
 
-            # payloads.append(payload)
             self._publisher(announce_topic, payload)
