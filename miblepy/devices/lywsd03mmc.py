@@ -19,13 +19,10 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
 
     sensor_data: Dict[str, Union[str, int, float]] = {}
 
-    try:
-        peripheral = connect(mac, interface, sensor_data)
+    peripheral = connect(mac, interface, sensor_data)
 
-        if peripheral.waitForNotifications(2000):
-            peripheral.disconnect()
-    except Exception:
-        raise
+    if peripheral.waitForNotifications(2000):
+        peripheral.disconnect()
 
     return sensor_data
 
