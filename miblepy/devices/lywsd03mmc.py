@@ -27,11 +27,11 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
     return sensor_data
 
 
-class MiblepyDelegate(DefaultDelegate):  # type: ignore
+class MiblepyDelegate(DefaultDelegate):
 
     def __init__(self, sensor_data: Dict[str, Union[str, int, float]]):
-        self.sensor_data: Dict[str, Union[str, int, float]] = sensor_data
         DefaultDelegate.__init__(self)
+        self.sensor_data: Dict[str, Union[str, int, float]] = sensor_data
 
     def handleNotification(self, cHandle: int, data: bytes) -> None:
         # global sensor_data
