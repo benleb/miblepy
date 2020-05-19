@@ -25,14 +25,9 @@ MI_CONDUCTIVITY = "conductivity"
 MI_BATTERY = "battery"
 
 DEVICE_PREFIX = "miblepy_"
-DEFAULT_MAX_RETRIES = 3
 
-DEFAULT_CONFIG_FILE = f"{os.environ.get('HOME', '')}/.miblepy.toml"
-
-# create logger
-timeform = "%Y-%m-%d %H:%M:%S"
-logform = "{asctime} {levelname:6s} {message}"
-logging.basicConfig(level=logging.INFO, datefmt=timeform, format=logform, style="{")
+MAX_RETRIES = 3
+CONFIG_FILE = f"{os.environ.get('HOME', '')}/.miblepy.toml"
 
 
 class ATTRS(Enum):
@@ -107,6 +102,7 @@ class Configuration:
     """Stores the program configuration."""
 
     def __init__(self, config_file_path: str, debug: bool = False):
+
         with open(config_file_path, "r") as file:
             config_file = parse(file.read())
 
@@ -115,18 +111,22 @@ class Configuration:
 
         config_general = config_file.get("general")
 
-        # logging
-        if debug:
-            config_general["debug"] = debug
-        self.debug: str = config_general.get("debug", False)
+        # debug
+        self.debug = debug or config_general.get("debug", False)
+        loglevel = logging.DEBUG if self.debug else logging.INFO
 
-        if self.debug:
-            logging.getLogger().setLevel(logging.DEBUG)
-        # self._configure_logging(config_general)
+        # logging
+        timeform = "%Y-%m-%d %H:%M:%S"
+        logform = "{asctime} {levelname} {message}"
+
+        if (logfile := config_general.get("logfile", None)):
+            logging.basicConfig(level=loglevel, filename=logfile, datefmt=timeform, format=logform, style="{")
+        else:
+            logging.basicConfig(level=loglevel, datefmt=timeform, format=logform, style="{")
 
         # ble interface
         self.interface: str = config_general.get("interface", "hci0")
-        self.max_retries: int = config_general.get("max_retries", DEFAULT_MAX_RETRIES)
+        self.max_retries: int = config_general.get("max_retries", MAX_RETRIES)
 
         #  mqtt
         mqtt_settings: Dict[str, Any] = {}
@@ -205,7 +205,7 @@ class Miblepy:
     """Main class of the module."""
 
     def __init__(
-        self, config_file_path: str = "~/.miblepy.toml", retries: int = DEFAULT_MAX_RETRIES, debug: bool = False,
+        self, config_file_path: str = "~/.miblepy.toml", retries: int = MAX_RETRIES, debug: bool = False,
     ):
         config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
         self.config = Configuration(config_file_path, debug=debug)
@@ -215,13 +215,13 @@ class Miblepy:
         self.connected = False
 
         logging.info(
-            f"{hl(__name__)} {__version__} | config file: {hl(config_file_path)} | "
-            f"interface: /dev/{hl(self.config.interface)} | "
-            f"debug: {hl(self.config.debug)}"
+            f"{hl(__name__)} {__version__} | fetching from {hl(len(self.config.sensors))} sensors "
+            f"(of {hl(len(self.config.config_file['sensors']))} types) | max retries: {hl(self.config.max_retries)}"
         )
-        logging.info(
-            f"starting to fetch from {hl(len(self.config.sensors))} sensors "
-            f"of ({hl(len(self.config.config_file['sensors']))} types) | max retries: {hl(self.config.max_retries)}"
+
+        logging.debug(
+            f"config file: {hl(config_file_path)} | interface: /dev/{hl(self.config.interface)} | "
+            f"debug: {hl(self.config.debug)}"
         )
         logging.debug(f"configuration: {self.config.config_file}")
 
@@ -266,6 +266,8 @@ class Miblepy:
     def _publisher(self, topic: str, data: Dict[str, Any]) -> None:
         if self.config.mqtt["timestamp_format"]:
             data["timestamp"] = datetime.now().strftime(self.config.mqtt["timestamp_format"])
+
+        # data["json_attributes_topic"] = topic
 
         if self.mqtt_client:
             msg: mqtt.MQTTMessageInfo = self.mqtt_client.publish(topic, json.dumps(data), qos=1, retain=True)
@@ -405,6 +407,11 @@ class Miblepy:
 
             sensors_list = failed_sensors_list
 
+        logging.info(
+            f"successfully fetched data from {hl(len(self.config.sensors) - len(failed_sensors_list))} "
+            f"sensors | {hl(len(failed_sensors_list))} failed: "
+            f"{', '.join((hl(str(sensor.alias)) for sensor in sensors_list))}"
+        )
         # return sensors that could not be processed after max_retries
         return failed_sensors_list
 
