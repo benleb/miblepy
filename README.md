@@ -9,8 +9,6 @@ Currently this is a private project tailored to my needs - but open for PRs :)
 
 ## Usage
 
-Run `miblepy fetch` to start fetching from configured sensors, try `miblepy --help` to get more help.
-
 As this is just a private project, there is not much documentation - besides the code itself ;)
 
 ### Install via pip
@@ -20,10 +18,17 @@ As this is just a private project, there is not much documentation - besides the
 ### Manual install
 
 * clone this repo & cd to it `git clone https://github.com/benleb/miblepy.git && cd miblepy`
-* copy `miblepy.toml` to `~/.miblepy.toml` and adjust settings
-* install requirements via
+* install (requirements) via
   * poetry: `poetry install`
   * pip: `pip install --upgrade .`
+
+### Configuration
+
+* Copy `miblepy.toml` to `~/.miblepy.toml` and adjust settings
+
+### Run
+
+* Run `miblepy fetch` to start fetching from configured sensors, try `miblepy --help` to get more help.
 
 ---
 
