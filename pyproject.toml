@@ -3,6 +3,10 @@ name = "miblepy"
 version = "0.3.0"
 description = "miblepy fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker in a coordinated, sequential manner."
 authors = ["Ben Lebherz <git@benleb.de>"]
+classifiers=[
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+]
 
 [tool.poetry.dependencies]
 python = "==3.*,>=3.8.0"
