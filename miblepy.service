@@ -1,0 +1,11 @@
+[Unit]
+Description=miblepy service
+After=network.target bluetooth.target
+
+[Service]
+Restart=on-abnormal
+Type=simple
+ExecStart=/usr/local/bin/mible fetch
+PrivateDevices=true
+PrivateMounts=true
+PrivateTmp=true

@@ -1,0 +1,10 @@
+[Unit]
+Description=miblepy timer
+
+[Timer]
+OnBootSec=180
+OnUnitInactiveSec=4m
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

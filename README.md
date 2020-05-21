@@ -34,7 +34,7 @@ As this is just a private project, there is not much documentation - besides the
 
 To continously fetch data from sensors you can choose...
 
-* a systemd service/timer: TODO
+* a systemd [timer](https://github.com/benleb/miblepy/blob/master/miblepy.timer) and [service](https://github.com/benleb/miblepy/blob/master/miblepy.service)
 * a cronjob
 * an automation provided by your smart home system (home assistant for example)
 
