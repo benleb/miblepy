@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "miblepy"
-version = "0.2.1"
+version = "0.3.0"
 description = "miblepy fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker in a coordinated, sequential manner."
 authors = ["Ben Lebherz <git@benleb.de>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "==3.*,>=3.8.0"
 bluepy = "^1.3"
 btlewrap = "=0.0.8"
 paho-mqtt = "^1.5.0"
@@ -14,16 +14,37 @@ tomlkit = "^0.6.0"
 click = "^7.1.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
-black = "^19.10b0"
-mypy = "^0.770"
-isort = "^4.3.21"
-flake8 = "^3.8.1"
-pycodestyle = "^2.6.0"
-bandit = "^1.6.2"
+pytest = "==5.*,>=5.2.0"
+black = "==19.*,>=19.10.0.b0"
+mypy = "==0.*,>=0.770.0"
+isort = "==4.*,>=4.3.21"
+flake8 = "==3.*,>=3.8.1"
+pycodestyle = "==2.*,>=2.6.0"
+bandit = "==1.*,>=1.6.2"
 
 [tool.poetry.scripts]
 mible = 'miblepy.cli:cli'
+
+
+[tool.dephell.main]
+versioning = "semver"
+tag = "v.{version}"
+# read from poetry format
+from = { format = "poetry", path = "pyproject.toml" }
+# drop dev-dependencies
+envs = ["main"]
+# and convert into setup.py
+to = { format = "setuppy", path = "setup.py" }
+
+[tool.isort]
+balanced_wrapping = true
+combine_as_imports = true
+combine_star = true
+line_length = 120
+lines_after_imports = 2
+lines_between_types = 1
+order_by_type = true
+use_parentheses = true
 
 [tool.black]
 line-length = 120
