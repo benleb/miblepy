@@ -12,10 +12,9 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 import paho.mqtt.client as mqtt
 
+from bluepy import btle
 from tomlkit import parse
 from tomlkit.toml_document import TOMLDocument
-
-from bluepy import btle
 
 
 MI_TEMPERATURE = "temperature"
@@ -27,7 +26,7 @@ MI_BATTERY = "battery"
 DEVICE_PREFIX = "miblepy_"
 
 MAX_RETRIES = 3
-CONFIG_FILE = f"{os.environ.get('HOME', '')}/.miblepy.toml"
+CONFIG_FILE = f"{os.environ.get('HOME', '')}/.mible.toml"
 
 
 class ATTRS(Enum):
@@ -120,7 +119,9 @@ class Configuration:
         logform = "{asctime} {levelname} {message}"
 
         if (logfile := config_general.get("logfile", None)):
-            logging.basicConfig(level=loglevel, filename=logfile, datefmt=timeform, format=logform, style="{")
+            logging.basicConfig(
+                level=loglevel, filename=logfile, datefmt=timeform, format=logform, style="{",
+            )
         else:
             logging.basicConfig(level=loglevel, datefmt=timeform, format=logform, style="{")
 
@@ -205,7 +206,7 @@ class Miblepy:
     """Main class of the module."""
 
     def __init__(
-        self, config_file_path: str = "~/.miblepy.toml", retries: int = MAX_RETRIES, debug: bool = False,
+        self, config_file_path: str = CONFIG_FILE, retries: int = MAX_RETRIES, debug: bool = False,
     ):
         config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
         self.config = Configuration(config_file_path, debug=debug)
@@ -267,8 +268,6 @@ class Miblepy:
         if self.config.mqtt["timestamp_format"]:
             data["timestamp"] = datetime.now().strftime(self.config.mqtt["timestamp_format"])
 
-        # data["json_attributes_topic"] = topic
-
         if self.mqtt_client:
             msg: mqtt.MQTTMessageInfo = self.mqtt_client.publish(topic, json.dumps(data), qos=1, retain=True)
             msg.wait_for_publish()
@@ -290,11 +289,15 @@ class Miblepy:
 
         return f"{self.config.mqtt['prefix']}/{device_topic}{'/' if self.config.mqtt['trailing_slash'] else ''}"
 
-    def _get_announce_topic(self, sensor_config: DeviceConfig, attribute: str, suffix: Optional[str] = None) -> str:
+    def _get_announce_topic(
+        self, sensor_config: DeviceConfig, attribute: Optional[str], suffix: Optional[str] = None
+    ) -> str:
         """Construct announce topic to publish to."""
         device_topic = self._get_device_topic(sensor_config, suffix)
 
-        return f"{self.config.mqtt['discovery_prefix']}/sensor/{device_topic}_{attribute}/config"
+        return (
+            f"{self.config.mqtt['discovery_prefix']}/sensor/{device_topic}{'_' + attribute if attribute else ''}/config"
+        )
 
     def fetch(self, sensor_config: DeviceConfig) -> Dict[str, Any]:
         """Get data from one Sensor."""
@@ -312,9 +315,7 @@ class Miblepy:
 
         try:
             data = device_backend.fetch_data(  # type: ignore
-                sensor_config.mac,
-                self.config.interface,
-                **sensor_config.config
+                sensor_config.mac, self.config.interface, **sensor_config.config
             )
         except btle.BTLEDisconnectError as error:
             logging.error(f"· {hl(sensor_config.name)}: ble disconnected: {error}")
@@ -426,22 +427,36 @@ class Miblepy:
 
         for attribute in supported_attributes:
 
-            payload = {
-                "state_topic": state_topic,
-                "value_template": "{{value_json." + attribute.value + "}}",
-                "unique_id": f"{self._get_device_topic(sensor_config, suffix)}_{attribute.value}",
-            }
-            if attribute in UNIT_OF_MEASUREMENT:
-                payload["unit_of_measurement"] = UNIT_OF_MEASUREMENT[attribute]
+            if attribute == ATTRS.MQTT_SUFFIX:
+                payload = {
+                    "state_topic": state_topic,
+                    "json_attributes_topic": state_topic,
+                    # "value_template": "{{value_json." + attribute.value + "}}",
+                    "value_template": "{{value_json." + ATTRS.WEIGHT.value + "}}",
+                    "unique_id": f"{self._get_device_topic(sensor_config, suffix)}",
+                }
+                if sensor_config.alias:
+                    payload["name"] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''}"
 
-            if sensor_config.alias:
-                payload[
-                    "name"
-                ] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''} {attribute.value.capitalize()}"
+                announce_topic = self._get_announce_topic(sensor_config, None, suffix=suffix)
+            else:
+                payload = {
+                    "state_topic": state_topic,
+                    "json_attributes_topic": state_topic,
+                    "value_template": "{{value_json." + attribute.value + "}}",
+                    "unique_id": f"{self._get_device_topic(sensor_config, suffix)}_{attribute.value}",
+                }
+                if attribute in UNIT_OF_MEASUREMENT:
+                    payload["unit_of_measurement"] = UNIT_OF_MEASUREMENT[attribute]
 
-            if DEVICE_CLASS[attribute]:
-                payload["device_class"] = DEVICE_CLASS[attribute]
+                if sensor_config.alias:
+                    payload[
+                        "name"
+                    ] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''} {attribute.value.capitalize()}"
 
-            announce_topic = self._get_announce_topic(sensor_config, attribute.value, suffix=suffix)
+                if DEVICE_CLASS[attribute]:
+                    payload["device_class"] = str(DEVICE_CLASS[attribute])
+
+                announce_topic = self._get_announce_topic(sensor_config, attribute.value, suffix=suffix)
 
             self._publisher(announce_topic, payload)

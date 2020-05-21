@@ -24,11 +24,11 @@ As this is just a private project, there is not much documentation - besides the
 
 ### Configuration
 
-* Copy `miblepy.toml` to `~/.miblepy.toml` and adjust settings
+* Copy `mible.toml` to `~/.mible.toml` and adjust settings
 
 ### Run
 
-* Run `miblepy fetch` to start fetching from configured sensors, try `miblepy --help` to get more help.
+* Run `mible fetch` to start fetching from configured sensors, try `mible --help` to get more help.
 
 ---
 
@@ -46,6 +46,7 @@ To continously fetch data from sensors you can choose...
 
 ## Support a new device
 
+**THIS WILL CHANGE SOON TO BE MORE FLEXIBLE, SORRY**
 To support a new device is very easy! Just a single python file should be placed in the `devices/` folder which:
 
 * has a `SUPPORTED_ATTRS` variable containing all supported attributes (see `miblepy/__init__.py` for available `ATTRS`).
