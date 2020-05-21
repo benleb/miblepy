@@ -1,0 +1,10 @@
+.git
+.gitignore
+
+.dockerignore
+
+*.md
+!README.md
+
+*.toml
+!pyproject.toml
