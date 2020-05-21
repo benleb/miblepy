@@ -26,7 +26,7 @@ MI_BATTERY = "battery"
 DEVICE_PREFIX = "miblepy_"
 
 MAX_RETRIES = 3
-CONFIG_FILE = f"{os.environ.get('HOME', '')}/.mible.toml"
+CONFIG_FILE = "~/.mible.toml"
 
 
 class ATTRS(Enum):
