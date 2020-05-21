@@ -1,6 +1,7 @@
 # miblepy
 miblepy_*.toml
 poetry.lock
+.dephell_report/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
