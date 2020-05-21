@@ -11,6 +11,14 @@ Currently this is a private project tailored to my needs - but open for PRs :)
 
 As this is just a private project, there is not much documentation - besides the code itself ;)
 
+### Docker
+
+The `:latest` tag is built from master, other tags can be found on [Docker Hub](https://hub.docker.com/r/benleb/miblepy)
+
+* mount your miblepy config to `/miblepy/mible.toml`
+
+`docker run --privileged --volume "mible.toml:/miblepy/mible.toml:ro" benleb/miblepy`
+
 ### Install via pip
 
 `pip install --upgrade miblepy`
