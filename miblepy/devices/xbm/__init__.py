@@ -7,6 +7,7 @@ Mi Body Composition Scale's library by him. Thanks!
 
 from math import floor
 
+
 LIMIT_AGE = 150
 LIMIT_HEIGHT = 250
 LIMIT_WEIGHT = 300
@@ -114,54 +115,14 @@ class bodyMetrics:
         # The included tables where quite strange, maybe bogus, replaced them with better ones...
         scales = [
             {"min": 0, "max": 20, "female": [18, 23, 30, 35], "male": [8, 14, 21, 25]},
-            {
-                "min": 21,
-                "max": 25,
-                "female": [19, 24, 30, 35],
-                "male": [10, 15, 22, 26],
-            },
-            {
-                "min": 26,
-                "max": 30,
-                "female": [20, 25, 31, 36],
-                "male": [11, 16, 21, 27],
-            },
-            {
-                "min": 31,
-                "max": 35,
-                "female": [21, 26, 33, 36],
-                "male": [13, 17, 25, 28],
-            },
-            {
-                "min": 46,
-                "max": 40,
-                "female": [22, 27, 34, 37],
-                "male": [15, 20, 26, 29],
-            },
-            {
-                "min": 41,
-                "max": 45,
-                "female": [23, 28, 35, 38],
-                "male": [16, 22, 27, 30],
-            },
-            {
-                "min": 46,
-                "max": 50,
-                "female": [24, 30, 36, 38],
-                "male": [17, 23, 29, 31],
-            },
-            {
-                "min": 51,
-                "max": 55,
-                "female": [26, 31, 36, 39],
-                "male": [19, 25, 30, 33],
-            },
-            {
-                "min": 56,
-                "max": 100,
-                "female": [27, 32, 37, 40],
-                "male": [21, 26, 31, 34],
-            },
+            {"min": 21, "max": 25, "female": [19, 24, 30, 35], "male": [10, 15, 22, 26],},
+            {"min": 26, "max": 30, "female": [20, 25, 31, 36], "male": [11, 16, 21, 27],},
+            {"min": 31, "max": 35, "female": [21, 26, 33, 36], "male": [13, 17, 25, 28],},
+            {"min": 46, "max": 40, "female": [22, 27, 34, 37], "male": [15, 20, 26, 29],},
+            {"min": 41, "max": 45, "female": [23, 28, 35, 38], "male": [16, 22, 27, 30],},
+            {"min": 46, "max": 50, "female": [24, 30, 36, 38], "male": [17, 23, 29, 31],},
+            {"min": 51, "max": 55, "female": [26, 31, 36, 39], "male": [19, 25, 30, 33],},
+            {"min": 56, "max": 100, "female": [27, 32, 37, 40], "male": [21, 26, 31, 34],},
         ]
 
         for scale in scales:
@@ -206,14 +167,8 @@ class bodyMetrics:
     # Get bone mass scale
     def getBoneMassScale(self):
         scales = [
-            {
-                "female": {"min": 60, "optimal": 2.5},
-                "male": {"min": 75, "optimal": 3.2},
-            },
-            {
-                "female": {"min": 45, "optimal": 2.2},
-                "male": {"min": 69, "optimal": 2.9},
-            },
+            {"female": {"min": 60, "optimal": 2.5}, "male": {"min": 75, "optimal": 3.2},},
+            {"female": {"min": 45, "optimal": 2.2}, "male": {"min": 69, "optimal": 2.9},},
             {"female": {"min": 0, "optimal": 1.8}, "male": {"min": 0, "optimal": 2.5}},
         ]
 
@@ -223,11 +178,7 @@ class bodyMetrics:
 
     # Get muscle mass
     def getMuscleMass(self):
-        muscleMass = (
-            self.weight
-            - ((self.getFatPercentage() * 0.01) * self.weight)
-            - self.getBoneMass()
-        )
+        muscleMass = self.weight - ((self.getFatPercentage() * 0.01) * self.weight) - self.getBoneMass()
 
         # Capping muscle mass
         if self.sex == "female" and muscleMass >= 84:
@@ -253,39 +204,25 @@ class bodyMetrics:
     def getVisceralFat(self):
         if self.sex == "female":
             if self.weight > (13 - (self.height * 0.5)) * -1:
-                subsubcalc = (
-                    (self.height * 1.45) + (self.height * 0.1158) * self.height
-                ) - 120
+                subsubcalc = ((self.height * 1.45) + (self.height * 0.1158) * self.height) - 120
                 subcalc = self.weight * 500 / subsubcalc
                 vfal = (subcalc - 6) + (self.age * 0.07)
             else:
                 subcalc = 0.691 + (self.height * -0.0024) + (self.height * -0.0024)
-                vfal = (
-                    (((self.height * 0.027) - (subcalc * self.weight)) * -1)
-                    + (self.age * 0.07)
-                    - self.age
-                )
+                vfal = (((self.height * 0.027) - (subcalc * self.weight)) * -1) + (self.age * 0.07) - self.age
         else:
             if self.height < self.weight * 1.6:
-                subcalc = (
-                    (self.height * 0.4) - (self.height * (self.height * 0.0826))
-                ) * -1
+                subcalc = ((self.height * 0.4) - (self.height * (self.height * 0.0826))) * -1
                 vfal = ((self.weight * 305) / (subcalc + 48)) - 2.9 + (self.age * 0.15)
             else:
                 subcalc = 0.765 + self.height * -0.0015
-                vfal = (
-                    (((self.height * 0.143) - (self.weight * subcalc)) * -1)
-                    + (self.age * 0.15)
-                    - 5.0
-                )
+                vfal = (((self.height * 0.143) - (self.weight * subcalc)) * -1) + (self.age * 0.15) - 5.0
 
         return self.check_bounds(vfal, 1, 50)
 
     # Get BMI
     def getBMI(self):
-        return self.check_bounds(
-            self.weight / ((self.height / 100) * (self.height / 100)), 10, 90
-        )
+        return self.check_bounds(self.weight / ((self.height / 100) * (self.height / 100)), 10, 90)
 
     # Get BMI scale
     @staticmethod
@@ -295,9 +232,7 @@ class bodyMetrics:
 
     # Get ideal weight (just doing a reverse BMI, should be something better)
     def getIdealWeight(self):
-        return self.check_bounds(
-            (22 * self.height) * self.height / 10000, 5.5, 198
-        )
+        return self.check_bounds((22 * self.height) * self.height / 10000, 5.5, 198)
 
     # Get ideal weight scale (BMI scale converted to weights)
     def getIdealWeightScale(self):
@@ -308,9 +243,7 @@ class bodyMetrics:
 
     # Get fat mass to ideal (guessing mi fit formula)
     def getFatMassToIdeal(self):
-        mass = (self.weight * (self.getFatPercentage() / 100)) - (
-            self.weight * (self.getFatPercentageScale()[2] / 100)
-        )
+        mass = (self.weight * (self.getFatPercentage() / 100)) - (self.weight * (self.getFatPercentageScale()[2] / 100))
         if mass < 0:
             return {"type": "to_gain", "mass": mass * -1}
         else:

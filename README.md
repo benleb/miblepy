@@ -2,8 +2,8 @@
 
 [![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/benleb/miblepy/?ref=repository-badge)
 
-**miblepy** fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker. For every device supported, there are already libraries or anything else to fetch the data from - and they work perfectly! But as they are separated and often run as distinct (cron)jobs, which are not aware of each other, the fight for the BLE interface starts...  
-**miblepy** solves this by acting as a coordinator/wrapper for all these separate libs. It utilizes them to actually fetch the data in a coordinated, sequential manner.  
+**miblepy** fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker. For every device supported, there are already libraries or anything else to fetch the data from - and they work perfectly! But as they are separated and often run as distinct (cron)jobs, which are not aware of each other, the fight for the BLE interface starts...
+**miblepy** solves this by acting as a coordinator/wrapper for all these separate libs. It utilizes them to actually fetch the data in a coordinated, sequential manner.
 
 Currently this is a private project tailored to my needs - but open for PRs :)
 
@@ -49,7 +49,7 @@ To continously fetch data from sensors you can choose...
 To support a new device is very easy! Just a single python file should be placed in the `devices/` folder which:
 
 * has a `SUPPORTED_ATTRS` variable containing all supported attributes (see `miblepy/__init__.py` for available `ATTRS`).
-* a function with this signature, called by miblepy for each device  
+* a function with this signature, called by miblepy for each device
 
 ```python
 def fetch_data(mac: str, interface: str, **kwargs) -> Dict[str, Any]
@@ -59,14 +59,14 @@ Check the already available plugins to see some examples.
 
 ## Thanks to
 
-* [@ChristianKuehnel](https://github.com/ChristianKuehnel) | [plantgw](https://github.com/ChristianKuehnel/plantgateway)  
+* [@ChristianKuehnel](https://github.com/ChristianKuehnel) | [plantgw](https://github.com/ChristianKuehnel/plantgateway)
 miblepy's idea is based on his plantgw project
 
 ---
 
-* [@open-homeautomation](https://github.com/open-homeautomation) | [miflora](https://github.com/open-homeautomation/miflora)  
+* [@open-homeautomation](https://github.com/open-homeautomation) | [miflora](https://github.com/open-homeautomation/miflora)
 Library to interact with FlowerCare/MiFlora devices
-* [@JsBergbau](https://github.com/JsBergbau) | [MiTemperature2](https://github.com/JsBergbau/MiTemperature2)  
+* [@JsBergbau](https://github.com/JsBergbau) | [MiTemperature2](https://github.com/JsBergbau/MiTemperature2)
 Library to interact with Mi Bluetooth LCD Thermometers
-* [@lolouk44](https://github.com/lolouk44) | [xiaomi_mi_scale](https://github.com/lolouk44/xiaomi_mi_scale)  
+* [@lolouk44](https://github.com/lolouk44) | [xiaomi_mi_scale](https://github.com/lolouk44/xiaomi_mi_scale)
 Library to interact with Mi Body Composition Scale 2

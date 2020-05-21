@@ -7,11 +7,16 @@ from datetime import datetime
 from typing import Any, Dict, Union
 
 from bluepy.btle import DefaultDelegate, Peripheral
-
 from miblepy import ATTRS
 
 
-SUPPORTED_ATTRS = [ATTRS.BATTERY, ATTRS.VOLTAGE, ATTRS.TEMPERATURE, ATTRS.HUMIDITY, ATTRS.TIMESTAMP]
+SUPPORTED_ATTRS = [
+    ATTRS.BATTERY,
+    ATTRS.VOLTAGE,
+    ATTRS.TEMPERATURE,
+    ATTRS.HUMIDITY,
+    ATTRS.TIMESTAMP,
+]
 
 
 def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
@@ -28,7 +33,6 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
 
 
 class MiblepyDelegate(DefaultDelegate):
-
     def __init__(self, sensor_data: Dict[str, Union[str, int, float]]):
         DefaultDelegate.__init__(self)
         self.sensor_data: Dict[str, Union[str, int, float]] = sensor_data
