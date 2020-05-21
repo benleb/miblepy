@@ -3,7 +3,7 @@ Description=miblepy service
 After=network.target bluetooth.target
 
 [Service]
-Restart=on-abnormal
+Restart=on-failure
 Type=simple
 ExecStart=/usr/local/bin/mible fetch
 PrivateDevices=true
