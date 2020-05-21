@@ -42,7 +42,7 @@ To continously fetch data from sensors you can choose...
 
 * VegTrug / Mi Flora plant sensors (Flower Care)
 * (Xiaomi?) Mijia Bluetooth Temperature Humidity sensors with LCD (LYWSD03MMC)
-* ~~Xiaomi Mi Body Composition Scale 2 (XMTZC05HM)~~ **WIP**
+* (Xiaomi?) Mi Body Composition Scale 2 (XMTZC05HM / XMTZC02HM)
 
 ## Support a new device
 
