@@ -33,12 +33,12 @@ mible = 'miblepy.cli:cli'
 [tool.dephell.main]
 versioning = "semver"
 tag = "v.{version}"
-# read from poetry format
-from = { format = "poetry", path = "pyproject.toml" }
-# drop dev-dependencies
-envs = ["main"]
-# and convert into setup.py
-to = { format = "setuppy", path = "setup.py" }
+# # read from poetry format
+# from = { format = "poetry", path = "pyproject.toml" }
+# # drop dev-dependencies
+# envs = ["main"]
+# # and convert into setup.py
+# to = { format = "setuppy", path = "setup.py" }
 
 [tool.isort]
 balanced_wrapping = true
