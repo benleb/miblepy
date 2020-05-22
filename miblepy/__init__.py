@@ -12,20 +12,22 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 import paho.mqtt.client as mqtt
 
-from bluepy import btle
 from tomlkit import parse
 from tomlkit.toml_document import TOMLDocument
 
+from bluepy import btle
 
-MI_TEMPERATURE = "temperature"
-MI_LIGHT = "light"
-MI_MOISTURE = "moisture"
-MI_CONDUCTIVITY = "conductivity"
-MI_BATTERY = "battery"
+
+# MI_TEMPERATURE = "temperature"
+# MI_LIGHT = "light"
+# MI_MOISTURE = "moisture"
+# MI_CONDUCTIVITY = "conductivity"
+# MI_BATTERY = "battery"
 
 DEVICE_PREFIX = "miblepy_"
 
 MAX_RETRIES = 3
+INITIAL_TIMEOUT = 1
 CONFIG_FILE = "~/.mible.toml"
 
 
@@ -40,6 +42,7 @@ class ATTRS(Enum):
     BONE_MASS = "bone_mass"
     BRIGHTNESS = "brightness"
     CONDUCTIVITY = "conductivity"
+    FW_VERSION = "fw_version"
     HEIGHT = "height"
     HUMIDITY = "humidity"
     IMPEDANCE = "impedance"
@@ -100,7 +103,7 @@ def hl(text: Union[int, float, str]) -> str:
 class Configuration:
     """Stores the program configuration."""
 
-    def __init__(self, config_file_path: str, debug: bool = False):
+    def __init__(self, config_file_path: str, verbose: bool = False, debug: bool = False):
 
         with open(config_file_path, "r") as file:
             config_file = parse(file.read())
@@ -112,7 +115,12 @@ class Configuration:
 
         # debug
         self.debug = debug or config_general.get("debug", False)
-        loglevel = logging.DEBUG if self.debug else logging.INFO
+        if self.debug:
+            self.loglevel = logging.DEBUG
+        elif verbose:
+            self.loglevel = logging.INFO
+        else:
+            self.loglevel = logging.WARNING
 
         # logging
         timeform = "%Y-%m-%d %H:%M:%S"
@@ -120,10 +128,10 @@ class Configuration:
 
         if (logfile := config_general.get("logfile", None)):
             logging.basicConfig(
-                level=loglevel, filename=logfile, datefmt=timeform, format=logform, style="{",
+                level=logging.INFO, filename=logfile, datefmt=timeform, format=logform, style="{",
             )
         else:
-            logging.basicConfig(level=loglevel, datefmt=timeform, format=logform, style="{")
+            logging.basicConfig(level=logging.INFO, datefmt=timeform, format=logform, style="{")
 
         # ble interface
         self.interface: str = config_general.get("interface", "hci0")
@@ -206,21 +214,29 @@ class Miblepy:
     """Main class of the module."""
 
     def __init__(
-        self, config_file_path: str = CONFIG_FILE, retries: int = MAX_RETRIES, debug: bool = False,
+        self,
+        config_file_path: str = CONFIG_FILE,
+        retries: int = MAX_RETRIES,
+        verbose: bool = False,
+        debug: bool = False,
     ):
         config_file_path = os.path.abspath(os.path.expanduser(config_file_path))
-        self.config = Configuration(config_file_path, debug=debug)
+        self.config = Configuration(config_file_path, verbose=verbose, debug=debug)
 
         self.config.max_retries = retries
         self.mqtt_client: Optional[mqtt.Client] = None
         self.connected = False
 
+        # logging.getLogger().setLevel(logging.INFO)
         logging.info(
             f"{hl(__name__)} {__version__} | fetching from {hl(len(self.config.sensors))} sensors "
             f"(of {hl(len(self.config.config_file['sensors']))} types) | max retries: {hl(self.config.max_retries)}"
         )
 
-        logging.debug(
+        # set loglevel
+        logging.getLogger().setLevel(self.config.loglevel)
+
+        logging.info(
             f"config file: {hl(config_file_path)} | interface: /dev/{hl(self.config.interface)} | "
             f"debug: {hl(self.config.debug)}"
         )
@@ -306,7 +322,7 @@ class Miblepy:
         data: Dict[str, Any] = {}
 
         try:
-            device_backend = importlib.import_module(f"miblepy.devices.{sensor_config.device_type}")
+            device_plugin = importlib.import_module(f"miblepy.devices.{sensor_config.device_type}")
         except (ModuleNotFoundError, ImportError) as error:
             logging.exception(
                 f"· {hl(sensor_config.name)}: required module {sensor_config.device_type} not found: {error}"
@@ -314,17 +330,17 @@ class Miblepy:
             return data
 
         try:
-            data = device_backend.fetch_data(  # type: ignore
+            data = device_plugin.fetch_data(  # type: ignore
                 sensor_config.mac, self.config.interface, **sensor_config.config
             )
         except btle.BTLEDisconnectError as error:
-            logging.error(f"· {hl(sensor_config.name)}: ble disconnected: {error}")
+            logging.info(f"· {hl(sensor_config.name)}: ble disconnected: {error}")
         except Exception as error:
             logging.error(f"· {hl(sensor_config.name)}: error when trying to fetch data: {error}")
 
         if not data:
-            logging.error(
-                f"· {hl(sensor_config.name)}: no data received from backend {device_backend.__name__} "
+            logging.info(
+                f"· {hl(sensor_config.name)}: no data received from plugin {hl(device_plugin.__name__.rsplit('.', 1)[1])} "
                 f"for device {hl(sensor_config.name)} ({sensor_config.mac})!"
             )
             return data
@@ -333,7 +349,7 @@ class Miblepy:
         state_topic = self._get_state_topic(sensor_config, mqtt_device_suffix)
 
         self.announce_sensor(
-            device_backend.SUPPORTED_ATTRS, sensor_config, state_topic, suffix=mqtt_device_suffix,  # type: ignore
+            device_plugin.SUPPORTED_ATTRS, sensor_config, state_topic, suffix=mqtt_device_suffix,  # type: ignore
         )
         logging.info(
             f"· {hl(sensor_config.name)}: sent sensor configuration to "
@@ -342,7 +358,9 @@ class Miblepy:
 
         # push sensor values
         self._publisher(state_topic, data)
+        # logging.getLogger().setLevel(logging.INFO)
         logging.info(f"· {hl(sensor_config.name)}: sent sensor values to {hl(state_topic)}")
+        # logging.getLogger().setLevel(self.config.loglevel)
 
         return data
 
@@ -351,13 +369,13 @@ class Miblepy:
         sensors_list: Set[DeviceConfig] = set(self.config.sensors)
 
         # initial timeout in seconds
-        timeout = 1
+        timeout = INITIAL_TIMEOUT
 
         retry_count = 1
 
         while not self.connected:
             self.start_client()
-            time.sleep(0.1)
+            # time.sleep(0.1)
 
         # logger = logging.getLogger()
         # handler = logging.StreamHandler()
@@ -366,7 +384,7 @@ class Miblepy:
 
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
-                logging.info(
+                logging.warning(
                     f"try {retry_count}/{self.config.max_retries} for "
                     f"{', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {hl(timeout)}s"
                 )
@@ -408,11 +426,13 @@ class Miblepy:
 
             sensors_list = failed_sensors_list
 
+        logging.getLogger().setLevel(logging.INFO)
         logging.info(
             f"successfully fetched data from {hl(len(self.config.sensors) - len(failed_sensors_list))} "
             f"sensors | {hl(len(failed_sensors_list))} failed: "
             f"{', '.join((hl(str(sensor.alias)) for sensor in sensors_list))}"
         )
+
         # return sensors that could not be processed after max_retries
         return failed_sensors_list
 
