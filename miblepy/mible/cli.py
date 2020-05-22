@@ -11,14 +11,16 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
 @click.pass_context
 @click.option("--version", default=False, is_flag=True, help=f"show {mbp_name} version")
+@click.option("-v", "--verbose", default=False, is_flag=True, help="enable additional output")
 @click.option("-d", "--debug", default=False, is_flag=True, help="enable debug output")
-def cli(ctx: click.Context, version: bool, debug: bool) -> None:
+def cli(ctx: click.Context, version: bool, verbose: bool, debug: bool) -> None:
     """fetch data from ble sensors and push it to a mqtt broker
 
       https://github.com/benleb/miblepy
     """
 
     ctx.ensure_object(dict)
+    ctx.obj["verbose"] = verbose
     ctx.obj["debug"] = debug
 
     if not ctx.invoked_subcommand:
@@ -39,7 +41,7 @@ def cli(ctx: click.Context, version: bool, debug: bool) -> None:
     "-r", "--retries", default=MAX_RETRIES, type=int, help="times we try to get data from a sensor",
 )
 def fetch(ctx: click.Context, config: str, retries: int) -> None:
-    Miblepy(config_file_path=config, retries=retries, debug=ctx.obj["debug"]).go()
+    Miblepy(config_file_path=config, retries=retries, verbose=ctx.obj["verbose"], debug=ctx.obj["debug"]).go()
 
 
 if __name__ == "__main__":
