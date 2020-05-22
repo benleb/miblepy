@@ -3,7 +3,7 @@
 [![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/benleb/miblepy/?ref=repository-badge)
 
 **miblepy** fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker. For every device supported, there are already libraries or anything else to fetch the data from - and they work perfectly! But as they are separated and often run as distinct (cron)jobs, which are not aware of each other, the fight for the BLE interface starts...
-**miblepy** solves this by acting as a coordinator/wrapper for all these separate libs. It utilizes them to actually fetch the data in a coordinated, sequential manner.
+**miblepy** solves this by acting as a coordinator/wrapper to fetch the data in a coordinated, sequential manner.
 
 Currently this is a private project tailored to my needs - but open for PRs :)
 
