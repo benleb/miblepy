@@ -1,15 +1,23 @@
 # miblepy
+<!-- 
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/miblepy)](https://pypi.org/project/miblepy/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/miblepy)](https://pypi.org/project/miblepy/)
+[![PyPI](https://img.shields.io/pypi/v/miblepy)](https://pypi.org/project/miblepy/)
 
-[![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/benleb/miblepy/?ref=repository-badge)
+[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/benleb/miblepy?sort=date)](https://hub.docker.com/r/benleb/miblepy)
+[![Docker Automated build](https://img.shields.io/docker/automated/benleb/miblepy)](https://hub.docker.com/r/benleb/miblepy)
+[![Docker Build Status](https://img.shields.io/docker/build/benleb/miblepy)](https://hub.docker.com/r/benleb/miblepy)
+[![Docker Pulls](https://img.shields.io/docker/pulls/benleb/miblepy)](https://hub.docker.com/r/benleb/miblepy)
 
-**miblepy** fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker. For every device supported, there are already libraries or anything else to fetch the data from - and they work perfectly! But as they are separated and often run as distinct (cron)jobs, which are not aware of each other, the fight for the BLE interface starts...
-**miblepy** solves this by acting as a coordinator/wrapper to fetch the data in a coordinated, sequential manner.
+[![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/benleb/miblepy/?ref=repository-badge) -->
 
-Currently this is a private project tailored to my needs - but open for PRs :)
+**miblepy** fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker. For every device supported, there are already libraries or anything else to fetch the data from - and they work perfectly. But as they are separated and often run as distinct (cron)jobs, which are not aware of each other, or even as daemons... the fight for the BLE interface starts...  
+
+**miblepy** solves this by acting as a "coordinator" to fetch the data in a controlled, sequential way.
+
+Currently this is a private project tailored to my needs - but open for PRs
 
 ## Usage
-
-As this is just a private project, there is not much documentation - besides the code itself ;)
 
 ### Docker
 
@@ -21,14 +29,14 @@ The `:latest` tag is built from master, other tags can be found on [Docker Hub](
 
 ### Install via pip
 
-`pip install --upgrade miblepy`
+`pip install miblepy`
 
 ### Manual install
 
 * clone this repo & cd to it `git clone https://github.com/benleb/miblepy.git && cd miblepy`
 * install (requirements) via
   * poetry: `poetry install`
-  * pip: `pip install --upgrade .`
+  * pip: `pip install .`
 
 ### Configuration
 
@@ -54,15 +62,7 @@ To continously fetch data from sensors you can choose...
 
 ## Support a new device
 
-**THIS WILL CHANGE SOON TO BE MORE FLEXIBLE, SORRY**
-To support a new device is very easy! Just a single python file should be placed in the `devices/` folder which:
-
-* has a `SUPPORTED_ATTRS` variable containing all supported attributes (see `miblepy/__init__.py` for available `ATTRS`).
-* a function with this signature, called by miblepy for each device
-
-```python
-def fetch_data(mac: str, interface: str, **kwargs) -> Dict[str, Any]
-```
+* **TODO**
 
 Check the already available plugins to see some examples.
 

@@ -2,19 +2,11 @@
 #   Mijia LCD Temperature Humidity Sensor (LYWSD03MMC)
 
 from datetime import datetime
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 from bluepy.btle import DefaultDelegate, Peripheral
 from miblepy import ATTRS
 
-
-SUPPORTED_ATTRS = [
-    ATTRS.BATTERY,
-    ATTRS.VOLTAGE,
-    ATTRS.TEMPERATURE,
-    ATTRS.HUMIDITY,
-    ATTRS.TIMESTAMP,
-]
 
 PLUGIN_NAME = "LYWSD03MMC"
 
@@ -24,11 +16,10 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
 
     device_name = kwargs.get("alias", None)
 
-    sensor_data: Dict[str, Union[str, int, float]] = {}
     plugin_data: Dict[str, Any] = {}
 
     # connect to device
-    peripheral = Peripheral(mac, iface=int(interface.replace("hci", "")))  # .setDelegate(delegate)
+    peripheral = Peripheral(mac, iface=int(interface.replace("hci", "")))
 
     def handleNotification(cHandle: int, data: bytes) -> None:
         if cHandle != 0x36:
@@ -43,26 +34,23 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
                 "sensors": [
                     {
                         "name": f"{device_name} {ATTRS.TEMPERATURE.value.capitalize()}",
-                        "attributes": {
-                            # 3.1 or above --> 100% 2.1 --> 0 %
-                            ATTRS.BATTERY.value: min(int(round((voltage - 2.1), 2) * 100), 100),
-                            ATTRS.VOLTAGE.value: str(voltage),
-                            ATTRS.TEMPERATURE.value: str(int.from_bytes(data[0:2], byteorder="little", signed=True) / 100),
-                            ATTRS.HUMIDITY.value: str(int.from_bytes(data[2:3], byteorder="little")),
-                            ATTRS.TIMESTAMP.value: str(datetime.now().isoformat()),
-                        }
+                        "value_template": "{{value_json." + ATTRS.TEMPERATURE.value + "}}",
+                        "entity_type": ATTRS.TEMPERATURE,
                     },
                     {
                         "name": f"{device_name} {ATTRS.HUMIDITY.value.capitalize()}",
-                        "attributes": {
-                            # 3.1 or above --> 100% 2.1 --> 0 %
-                            ATTRS.BATTERY.value: min(int(round((voltage - 2.1), 2) * 100), 100),
-                            ATTRS.VOLTAGE.value: str(voltage),
-                            ATTRS.TEMPERATURE.value: str(int.from_bytes(data[0:2], byteorder="little", signed=True) / 100),
-                            ATTRS.TIMESTAMP.value: str(datetime.now().isoformat()),
-                        }
-                    }
-                ]
+                        "value_template": "{{value_json." + ATTRS.HUMIDITY.value + "}}",
+                        "entity_type": ATTRS.HUMIDITY,
+                    },
+                ],
+                "attributes": {
+                    # 3.1 or above --> 100% 2.1 --> 0 %
+                    ATTRS.BATTERY.value: min(int(round((voltage - 2.1), 2) * 100), 100),
+                    ATTRS.VOLTAGE.value: str(voltage),
+                    ATTRS.TEMPERATURE.value: str(int.from_bytes(data[0:2], byteorder="little", signed=True) / 100),
+                    ATTRS.HUMIDITY.value: str(int.from_bytes(data[2:3], byteorder="little")),
+                    ATTRS.TIMESTAMP.value: str(datetime.now().isoformat()),
+                },
             }
         )
 
@@ -82,6 +70,4 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
     if peripheral.waitForNotifications(10000):
         peripheral.disconnect()
 
-    sensor_data = plugin_data["sensors"][0]["attributes"]
-
-    return sensor_data
+    return plugin_data

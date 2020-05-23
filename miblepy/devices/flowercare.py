@@ -9,24 +9,11 @@ from bluepy.btle import Peripheral
 from miblepy import ATTRS
 
 
-SUPPORTED_ATTRS = [
-    ATTRS.BRIGHTNESS,
-    ATTRS.BATTERY,
-    ATTRS.TEMPERATURE,
-    ATTRS.MOISTURE,
-    ATTRS.CONDUCTIVITY,
-    ATTRS.TIMESTAMP,
-]
-
 PLUGIN_NAME = "Flower Care"
 
 
 def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
     """Get data from one Sensor."""
-
-    device_name = kwargs.get("alias", None)
-
-    plugin_data: Dict[str, Any] = {}
 
     # connect to device
     peripheral = Peripheral(mac, iface=int(interface.replace("hci", "")))
@@ -51,26 +38,46 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
     # 10-15: unknown
     data: bytes = peripheral.readCharacteristic(0x35)
 
-    plugin_data.update(
-        {
-            "name": PLUGIN_NAME,
-            "sensors": [
-                {
-                    "name": f"{device_name} {ATTRS.TEMPERATURE.value.capitalize()}",
-                    "attributes": {
-                        ATTRS.BATTERY.value: str(battery_level),
-                        ATTRS.TEMPERATURE.value: str(int.from_bytes(data[0:2], byteorder="little") / 10),
-                        ATTRS.BRIGHTNESS.value: str(int.from_bytes(data[3:6], byteorder="little")),
-                        ATTRS.MOISTURE.value: str(int.from_bytes(data[7:8], byteorder="little")),
-                        ATTRS.CONDUCTIVITY.value: str(int.from_bytes(data[8:10], byteorder="little")),
-                        ATTRS.FW_VERSION.value: firmware_version,
-                        ATTRS.TIMESTAMP.value: datetime.now().isoformat(),
-                    },
-                }
-            ],
-        }
-    )
+    device_name = kwargs.get("alias", None)
 
-    sensor_data: Dict[str, Any] = plugin_data["sensors"][0]["attributes"]
+    plugin_data: Dict[str, Any] = {
+        "name": PLUGIN_NAME,
+        "sensors": [
+            {
+                "name": f"{device_name} {ATTRS.TEMPERATURE.value.capitalize()}",
+                "value_template": "{{value_json." + ATTRS.TEMPERATURE.value + "}}",
+                "entity_type": ATTRS.TEMPERATURE,
+            },
+            {
+                "name": f"{device_name} {ATTRS.BRIGHTNESS.value.capitalize()}",
+                "value_template": "{{value_json." + ATTRS.BRIGHTNESS.value + "}}",
+                "entity_type": ATTRS.BRIGHTNESS,
+            },
+            {
+                "name": f"{device_name} {ATTRS.MOISTURE.value.capitalize()}",
+                "value_template": "{{value_json." + ATTRS.MOISTURE.value + "}}",
+                "entity_type": ATTRS.MOISTURE,
+            },
+            {
+                "name": f"{device_name} {ATTRS.CONDUCTIVITY.value.capitalize()}",
+                "value_template": "{{value_json." + ATTRS.CONDUCTIVITY.value + "}}",
+                "entity_type": ATTRS.CONDUCTIVITY,
+            },
+            {
+                "name": f"{device_name} {ATTRS.BATTERY.value.capitalize()}",
+                "value_template": "{{value_json." + ATTRS.BATTERY.value + "}}",
+                "entity_type": ATTRS.BATTERY,
+            },
+        ],
+        "attributes": {
+            ATTRS.BATTERY.value: str(battery_level),
+            ATTRS.TEMPERATURE.value: str(int.from_bytes(data[0:2], byteorder="little") / 10),
+            ATTRS.BRIGHTNESS.value: str(int.from_bytes(data[3:6], byteorder="little")),
+            ATTRS.MOISTURE.value: str(int.from_bytes(data[7:8], byteorder="little")),
+            ATTRS.CONDUCTIVITY.value: str(int.from_bytes(data[8:10], byteorder="little")),
+            ATTRS.FW_VERSION.value: firmware_version,
+            ATTRS.TIMESTAMP.value: datetime.now().isoformat(),
+        },
+    }
 
-    return sensor_data
+    return plugin_data

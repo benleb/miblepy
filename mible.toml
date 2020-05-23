@@ -42,24 +42,24 @@ prefix = "miblepy"
 
 
 # sensor configuration, replace this with the configuration of your sensors
-[[sensors.bodycompscale2]]
+[[sensors.bodycompscale]]
 mac = "0C:91:41:E2:AB:1F"
 alias = "Mi Scale"
-[[sensors.bodycompscale2.users]]
+[[sensors.bodycompscale.users]]
 user = "Ben"
 height = 187
 birthdate = 1989-02-26
 sex = "male"
 weightOver = 70
 weightBelow = 90
-[[sensors.bodycompscale2.users]]
+[[sensors.bodycompscale.users]]
 user = "Naomi"
 height = 161
 birthdate = 1990-10-29
 sex = "female"
 weightOver = 40
 weightBelow = 60
-[[sensors.bodycompscale2.users]]
+[[sensors.bodycompscale.users]]
 user = "Shiva"
 height = 42
 birthdate = 2011-04-11

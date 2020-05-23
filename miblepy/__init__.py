@@ -8,6 +8,7 @@ import time
 
 from datetime import datetime
 from enum import Enum
+from random import shuffle
 from typing import Any, Dict, List, Optional, Set, Union
 
 import paho.mqtt.client as mqtt
@@ -17,12 +18,6 @@ from tomlkit.toml_document import TOMLDocument
 
 from bluepy import btle
 
-
-# MI_TEMPERATURE = "temperature"
-# MI_LIGHT = "light"
-# MI_MOISTURE = "moisture"
-# MI_CONDUCTIVITY = "conductivity"
-# MI_BATTERY = "battery"
 
 DEVICE_PREFIX = "miblepy_"
 
@@ -126,7 +121,7 @@ class Configuration:
         timeform = "%Y-%m-%d %H:%M:%S"
         logform = "{asctime} {levelname} {message}"
 
-        if (logfile := config_general.get("logfile", None)):
+        if (logfile := config_general.get("logfile")):
             logging.basicConfig(
                 level=logging.INFO, filename=logfile, datefmt=timeform, format=logform, style="{",
             )
@@ -203,11 +198,6 @@ class DeviceConfig:
 
     def __str__(self) -> str:
         return f"{self.alias if self.alias else self.mac}{' (fail silent)' if self.fail_silent else ''}"
-
-    # @staticmethod
-    # def get_name_string(sensor_list: List[A]) -> sntr:
-    #     """Convert a list of sensor objects to a nice string."""
-    #     return ", ".join((str(sensor.alias) for sensor in sensor_list))
 
 
 class Miblepy:
@@ -299,21 +289,15 @@ class Miblepy:
 
         return f"{device_topic}{f'_{suffix}' if suffix else ''}"
 
-    def _get_state_topic(self, sensor_config: DeviceConfig, suffix: Optional[str] = None) -> str:
+    def _get_state_topic(self, sensor_config: DeviceConfig, short_mac: str, name: Optional[str]) -> str:
         """Construct state topic to publish to."""
-        device_topic = self._get_device_topic(sensor_config, suffix)
+        device_topic = self._get_device_topic(sensor_config, None)
 
         return f"{self.config.mqtt['prefix']}/{device_topic}{'/' if self.config.mqtt['trailing_slash'] else ''}"
 
-    def _get_announce_topic(
-        self, sensor_config: DeviceConfig, attribute: Optional[str], suffix: Optional[str] = None
-    ) -> str:
+    def _get_announce_topic(self, short_mac: str, name: str) -> str:
         """Construct announce topic to publish to."""
-        device_topic = self._get_device_topic(sensor_config, suffix)
-
-        return (
-            f"{self.config.mqtt['discovery_prefix']}/sensor/{device_topic}{'_' + attribute if attribute else ''}/config"
-        )
+        return f"{self.config.mqtt['discovery_prefix']}/sensor/{short_mac}_{name}/config".replace(" ", "_")
 
     def fetch(self, sensor_config: DeviceConfig) -> Dict[str, Any]:
         """Get data from one Sensor."""
@@ -340,27 +324,57 @@ class Miblepy:
 
         if not data:
             logging.info(
-                f"· {hl(sensor_config.name)}: no data received from plugin {hl(device_plugin.__name__.rsplit('.', 1)[1])} "
-                f"for device {hl(sensor_config.name)} ({sensor_config.mac})!"
+                f"· {hl(sensor_config.name)}: no data received from plugin "
+                f"{hl(device_plugin.__name__.rsplit('.', 1)[1])} for device "
+                f"{hl(sensor_config.name)} ({sensor_config.mac})!"
             )
             return data
 
-        mqtt_device_suffix = data.get(ATTRS.MQTT_SUFFIX.value, None)
-        state_topic = self._get_state_topic(sensor_config, mqtt_device_suffix)
+        entity_list = data.get("sensors", []) + data.get("binary_sensors", [])
 
-        self.announce_sensor(
-            device_plugin.SUPPORTED_ATTRS, sensor_config, state_topic, suffix=mqtt_device_suffix,  # type: ignore
-        )
-        logging.info(
-            f"· {hl(sensor_config.name)}: sent sensor configuration to "
-            f"{hl(self._get_announce_topic(sensor_config, '<attribute>', suffix=mqtt_device_suffix))}"
-        )
+        state_topic = self._get_state_topic(sensor_config, sensor_config.short_mac, None)
+        state_published = False
+
+        for entity in entity_list:
+            entity_name = entity["name"]
+            entity_type: ATTRS = entity["entity_type"]
+            unique_id = f"{sensor_config.short_mac}_{entity_name}".replace(" ", "_")
+            announce_topic = self._get_announce_topic(sensor_config.short_mac, entity_name)
+
+            payload = {
+                "name": entity_name,
+                "state_topic": state_topic,
+                "json_attributes_topic": state_topic,
+                "value_template": entity["value_template"],
+                "unique_id": unique_id,
+            }
+
+            if entity_type in UNIT_OF_MEASUREMENT:
+                payload["unit_of_measurement"] = UNIT_OF_MEASUREMENT[entity_type]
+
+            if DEVICE_CLASS[entity_type]:
+                payload["device_class"] = str(DEVICE_CLASS[entity_type])
+
+            if "own_state_topic" in entity:
+                payload["state_topic"] = (
+                    f"{self.config.mqtt['prefix']}/{sensor_config.short_mac}_{entity_name}"
+                    f"{'/' if self.config.mqtt['trailing_slash'] else ''}"
+                ).replace(" ", "_")
+
+                payload["json_attributes_topic"] = payload["state_topic"]
+
+                # push sensor values
+                self._publisher(payload["state_topic"], data["attributes"])
+                state_published = True
+                logging.info(f"· {hl(sensor_config.name)}: sent sensor values to {hl(payload['state_topic'])}")
+
+            self._publisher(announce_topic, payload)
+            logging.info(f"· {hl(sensor_config.name)}: sent {hl(entity_name)} configuration to {hl(announce_topic)}")
 
         # push sensor values
-        self._publisher(state_topic, data)
-        # logging.getLogger().setLevel(logging.INFO)
-        logging.info(f"· {hl(sensor_config.name)}: sent sensor values to {hl(state_topic)}")
-        # logging.getLogger().setLevel(self.config.loglevel)
+        if not state_published:
+            self._publisher(state_topic, data["attributes"])
+            logging.info(f"· {hl(sensor_config.name)}: sent sensor values to {hl(state_topic)}")
 
         return data
 
@@ -375,10 +389,7 @@ class Miblepy:
 
         while not self.connected:
             self.start_client()
-            # time.sleep(0.1)
-
-        # logger = logging.getLogger()
-        # handler = logging.StreamHandler()
+            time.sleep(0.1)
 
         while retry_count <= self.config.max_retries and sensors_list:
 
@@ -398,6 +409,8 @@ class Miblepy:
 
             # increment retry counter
             retry_count += 1
+
+            shuffle([sensors_list])
 
             # process sensors in list
             for sensor in sensors_list:
@@ -435,48 +448,3 @@ class Miblepy:
 
         # return sensors that could not be processed after max_retries
         return failed_sensors_list
-
-    def announce_sensor(
-        self,
-        supported_attributes: List[ATTRS],
-        sensor_config: DeviceConfig,
-        state_topic: str,
-        suffix: Optional[str] = None,
-    ) -> None:
-        """Announce the sensor via Home Assistant MQTT Discovery: https://www.home-assistant.io/docs/mqtt/discovery/"""
-
-        for attribute in supported_attributes:
-
-            if attribute == ATTRS.MQTT_SUFFIX:
-                payload = {
-                    "state_topic": state_topic,
-                    "json_attributes_topic": state_topic,
-                    # "value_template": "{{value_json." + attribute.value + "}}",
-                    "value_template": "{{value_json." + ATTRS.WEIGHT.value + "}}",
-                    "unique_id": f"{self._get_device_topic(sensor_config, suffix)}",
-                }
-                if sensor_config.alias:
-                    payload["name"] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''}"
-
-                announce_topic = self._get_announce_topic(sensor_config, None, suffix=suffix)
-            else:
-                payload = {
-                    "state_topic": state_topic,
-                    "json_attributes_topic": state_topic,
-                    "value_template": "{{value_json." + attribute.value + "}}",
-                    "unique_id": f"{self._get_device_topic(sensor_config, suffix)}_{attribute.value}",
-                }
-                if attribute in UNIT_OF_MEASUREMENT:
-                    payload["unit_of_measurement"] = UNIT_OF_MEASUREMENT[attribute]
-
-                if sensor_config.alias:
-                    payload[
-                        "name"
-                    ] = f"{sensor_config.alias}{f' {suffix}' if suffix else ''} {attribute.value.capitalize()}"
-
-                if DEVICE_CLASS[attribute]:
-                    payload["device_class"] = str(DEVICE_CLASS[attribute])
-
-                announce_topic = self._get_announce_topic(sensor_config, attribute.value, suffix=suffix)
-
-            self._publisher(announce_topic, payload)
