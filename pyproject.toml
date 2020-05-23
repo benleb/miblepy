@@ -33,7 +33,7 @@ mible = 'miblepy.mible.cli:cli'
 
 [tool.dephell.main]
 versioning = "semver"
-tag = "v.{version}"
+tag = "v{version}"
 # read from poetry format
 from = { format = "poetry", path = "pyproject.toml" }
 # # drop dev-dependencies
