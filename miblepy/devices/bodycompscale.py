@@ -25,7 +25,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
     plugin_data: Dict[str, Any] = {}
 
     def swapi16(data: bytes, start_byte: int, end_byte: int) -> int:
-        return int((data[end_byte - 2:end_byte] + data[start_byte:start_byte + 2]), 16)
+        return int((data[end_byte - 2 : end_byte] + data[start_byte : start_byte + 2]), 16)
 
     def find_user(weight: float) -> Dict[str, Any]:
         def get_age(birthdate: Any) -> int:
@@ -97,7 +97,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
             # measurement_weight = 8.05
             # impedance = 1337
 
-            if (current_user := find_user(measurement_weight)):
+            if current_user := find_user(measurement_weight):
                 bm = xbm.bodyMetrics(
                     current_user[ATTRS.WEIGHT.value],
                     current_user[ATTRS.HEIGHT.value],

@@ -121,7 +121,7 @@ class Configuration:
         timeform = "%Y-%m-%d %H:%M:%S"
         logform = "{asctime} {levelname} {message}"
 
-        if (logfile := config_general.get("logfile")):
+        if logfile := config_general.get("logfile"):
             logging.basicConfig(
                 level=logging.INFO, filename=logfile, datefmt=timeform, format=logform, style="{",
             )

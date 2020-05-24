@@ -46,6 +46,9 @@ lines_after_imports = 2
 lines_between_types = 1
 order_by_type = true
 use_parentheses = true
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
 
 [tool.black]
 line-length = 120
