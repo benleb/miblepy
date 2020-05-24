@@ -98,7 +98,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
             # impedance = 1337
 
             if current_user := find_user(measurement_weight):
-                bm = xbm.bodyMetrics(
+                bm = xbm.BodyMetrics(
                     current_user[ATTRS.WEIGHT.value],
                     current_user[ATTRS.HEIGHT.value],
                     current_user[ATTRS.AGE.value],
