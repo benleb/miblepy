@@ -1,4 +1,4 @@
-# miblepy
+# miblepy · [![PyPI](https://img.shields.io/pypi/v/miblepy)](https://pypi.org/project/miblepy/) [![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/benleb/miblepy?sort=date)](https://hub.docker.com/r/benleb/miblepy) [![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/benleb/miblepy/?ref=repository-badge)
 
 <!-- 
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/miblepy)](https://pypi.org/project/miblepy/)
