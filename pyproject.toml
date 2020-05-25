@@ -3,6 +3,7 @@ name = "miblepy"
 version = "0.4.5"
 description = "miblepy fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker in a coordinated, sequential manner."
 readme = "README.md"
+long_description_content_type = "text/markdown"
 homepage = "https://github.com/benleb/miblepy"
 repository = "https://github.com/benleb/miblepy"
 authors = ["Ben Lebherz <git@benleb.de>"]
