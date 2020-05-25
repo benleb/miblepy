@@ -1,4 +1,5 @@
 # miblepy
+
 <!-- 
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/miblepy)](https://pypi.org/project/miblepy/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/miblepy)](https://pypi.org/project/miblepy/)
@@ -19,19 +20,15 @@ Currently this is a private project tailored to my needs - but open for PRs
 
 ## Usage
 
-### Docker
+**miblepy** is available as [pip](#via-pip) package and [Docker image](#docker).
 
-The `:latest` tag is built from master, other tags can be found on [Docker Hub](https://hub.docker.com/r/benleb/miblepy)
+### Install
 
-* mount your miblepy config to `/miblepy/mible.toml`
-
-`docker run --privileged --volume "mible.toml:/miblepy/mible.toml:ro" benleb/miblepy`
-
-### Install via pip
+#### via pip
 
 `pip install miblepy`
 
-### Manual install
+#### manual
 
 * clone this repo & cd to it `git clone https://github.com/benleb/miblepy.git && cd miblepy`
 * install (requirements) via
@@ -40,19 +37,29 @@ The `:latest` tag is built from master, other tags can be found on [Docker Hub](
 
 ### Configuration
 
-* Copy `mible.toml` to `~/.mible.toml` and adjust settings
+Copy `mible.toml` to `~/.mible.toml` and adjust settings to your needs. `~/.mible.toml` is the default location where `mible` expects your configuration. You can change this via `--config`.
 
 ### Run
 
-* Run `mible fetch` to start fetching from configured sensors, try `mible --help` to get more help.
+Start a single round of fetching from your configured sensors in `~/.mible.toml`
 
----
+```bash
+mible fetch
+```
 
-To continously fetch data from sensors you can choose...
+try `mible --help` to get more info.
 
-* a systemd [timer](https://github.com/benleb/miblepy/blob/master/miblepy.timer) and [service](https://github.com/benleb/miblepy/blob/master/miblepy.service)
-* a cronjob
-* an automation provided by your smart home system (home assistant for example)
+To continously fetch data from your sensors check out the systemd [timer](https://github.com/benleb/miblepy/blob/master/miblepy.timer) and [service](https://github.com/benleb/miblepy/blob/master/miblepy.service). You can also use a classic cronjob or even an automation provided by your smart home system (home assistant for example)
+
+### Docker
+
+The `:latest` tag is built from master, other tags can be found on [Docker Hub](https://hub.docker.com/r/benleb/miblepy)
+
+Mount your miblepy config to `/miblepy/mible.toml`
+
+```bash
+docker run --privileged --volume "mible.toml:/miblepy/mible.toml:ro" benleb/miblepy
+```
 
 ## Supported devices
 
@@ -70,9 +77,6 @@ Check the already available plugins to see some examples.
 
 * [@ChristianKuehnel](https://github.com/ChristianKuehnel) | [plantgw](https://github.com/ChristianKuehnel/plantgateway)
 miblepy's idea is based on his plantgw project
-
----
-
 * [@open-homeautomation](https://github.com/open-homeautomation) | [miflora](https://github.com/open-homeautomation/miflora)
 Library to interact with FlowerCare/MiFlora devices
 * [@JsBergbau](https://github.com/JsBergbau) | [MiTemperature2](https://github.com/JsBergbau/MiTemperature2)
