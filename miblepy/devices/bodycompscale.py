@@ -48,20 +48,12 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
         # determine current user by weight
         for user in users:
 
-            if user["weightOver"] and not user["weightBelow"]:
-                if weight > user["weightOver"]:  # type: ignore
-                    current_user = user
+            if not all([user["weightOver"], user["weightBelow"]]):
+                continue
 
-            elif user["weightOver"] and user["weightBelow"]:
-                if weight > user["weightOver"] and weight < user["weightBelow"]:  # type: ignore
-                    current_user = user
-
-            elif user["weightOver"] and user["weightBelow"]:
-                if weight > user["weightOver"] and weight < user["weightBelow"]:  # type: ignore
-                    current_user = user
-
-            # if current user found, fill profile values and exit
-            if current_user:
+            if user["weightOver"] < weight < user["weightBelow"]:  # type: ignore
+                # current user found, fill profile values and exit
+                current_user = user
                 current_user[ATTRS.WEIGHT.value] = weight
                 current_user[ATTRS.AGE.value] = get_age(current_user["birthdate"])
                 break
