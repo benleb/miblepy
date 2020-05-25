@@ -38,9 +38,6 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
     users: List[Dict[str, Union[str, int, float, date]]] = kwargs.get("users", [])
     plugin_data: Dict[str, Any] = {}
 
-    def swapi16(data: bytes, start_byte: int, end_byte: int) -> int:
-        return int((data[end_byte - 2 : end_byte] + data[start_byte : start_byte + 2]), 16)
-
     def find_user(weight: float) -> Dict[str, Any]:
         def get_age(birthdate: Any) -> int:
             today = date.today()
@@ -107,6 +104,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
             # calc weight based on unit
             weight = measured["weight"] / 100 / 2 if measured["unit_id"] == 2 else measured["weight"] / 100
 
+            # check if we got a proper measurement
             if not all([measurement_stabilized, unit]):
                 logging.warning(
                     f"missing data! measurement_weight: {weight} | unit: {unit} | impedance: {measured['impedance']}"
@@ -118,6 +116,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
                 measured["year"], measured["month"], measured["day"], measured["hour"], measured["min"], measured["sec"]
             )
 
+            # find the current user based on its weight
             if user := find_user(weight):
 
                 bm = xbm.BodyMetrics(
@@ -141,6 +140,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
                     ATTRS.TIMESTAMP.value: measurement_datetime.isoformat(),
                 }
 
+                # if we got a valid impedance, we can add more metrics
                 if impedance_available:
                     attributes.update(
                         {
