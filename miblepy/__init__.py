@@ -258,7 +258,7 @@ class Miblepy:
         if self.config.mqtt["ca_cert"]:
             self.mqtt_client.tls_set(self.config.mqtt["ca_cert"], cert_reqs=mqtt.ssl.CERT_REQUIRED)
 
-        def _on_connect(client: Any, _: Any, flags: Any, return_code: int) -> None:
+        def _on_connect(client: Any, _: Any, flags: Any, return_code: int) -> None:  # skipcq: PYL-W0613
             self.connected = True
             logging.debug(
                 f"MQTT connection to {hl(self.config.mqtt['server'] + ':' + str(self.config.mqtt['port']))} established"
