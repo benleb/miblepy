@@ -2,10 +2,21 @@
 name = "miblepy"
 version = "0.4.4"
 description = "miblepy fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker in a coordinated, sequential manner."
+homepage = "https://github.com/benleb/miblepy"
+repository = "https://github.com/benleb/miblepy"
 authors = ["Ben Lebherz <git@benleb.de>"]
+license = "MIT"
+keywords = ["bluetooth", "smart-home", "sensor", "xiaomi", "home-assistant"]
 classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
   "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Topic :: Home Automation",
 ]
 
 [tool.poetry.dependencies]
@@ -27,17 +38,15 @@ bandit = "==1.*,>=1.6.2"
 [tool.poetry.scripts]
 mible = 'miblepy.mible.cli:cli'
 
-
-
 [tool.dephell.main]
 versioning = "semver"
 tag = "v{version}"
 # read from poetry format
 from = { format = "poetry", path = "pyproject.toml" }
-# # drop dev-dependencies
-# envs = ["main"]
-# # and convert into setup.py
-# to = { format = "setuppy", path = "setup.py" }
+# drop dev-dependencies
+envs = ["main"]
+# and convert into setup.py
+to = { format = "setuppy", path = "setup.py" }
 
 [tool.isort]
 balanced_wrapping = true
