@@ -26,14 +26,30 @@ Currently this is a private project tailored to my needs - but open for PRs
 
 #### via pip
 
-`pip install miblepy`
+```bash
+pip install miblepy
+```
 
 #### manual
 
-* clone this repo & cd to it `git clone https://github.com/benleb/miblepy.git && cd miblepy`
-* install (requirements) via
-  * poetry: `poetry install`
-  * pip: `pip install .`
+* clone this repo & cd to it  
+
+  ```bash
+  git clone https://github.com/benleb/miblepy.git && cd miblepy
+  ```
+
+* install via
+  * poetry
+
+    ```bash
+    poetry install
+    ```
+
+  * pip
+
+    ```bash
+    pip install .
+    ```
 
 ### Configuration
 
