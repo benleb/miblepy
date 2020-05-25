@@ -4,6 +4,7 @@
 import logging
 
 from datetime import date, datetime
+from struct import unpack
 from typing import Any, Dict, List, Union
 
 import miblepy.devices.xbm as xbm
@@ -15,6 +16,19 @@ from miblepy import ATTRS
 PLUGIN_NAME = "BodyCompScale"
 
 SCAN_TIMEOUT = 10
+UNITS = {2: "kg", 3: "lbs"}
+DATA_KEYS = (
+    "unit_id",
+    "control",
+    "year",
+    "month",
+    "day",
+    "hour",
+    "min",
+    "sec",
+    "impedance",
+    "weight",
+)
 
 
 def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
@@ -68,82 +82,89 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
             if not data.startswith("1b18") or sdid != 22:
                 continue
 
-            dt = None
-            impedance = None
-            measurement_weight = None
-            unit = None
+            # 15b in little endian
+            #   0-1: identifier?
+            #     2: unit
+            #     3: control byte
+            #   4-5: year
+            #     6: month
+            #     7: day
+            #     8: hour
+            #     9: min
+            #     10: sec
+            #  11-12: impedance
+            #  13-14: weight
 
-            # parse weight & unit
-            measurement_weight = swapi16(data, 26, 30) * 0.01
-            measurement_unit = data[4:6]
+            # unpack bytes to dictionary
+            measured = dict(zip(DATA_KEYS, unpack("<xxBBHBBBBBHH", bytes.fromhex(data))))
 
-            # check weight unit
-            if measurement_unit == "03":
-                unit = "lbs"
-            if measurement_unit == "02":
-                unit = "kg"
-                measurement_weight = measurement_weight / 2
-            else:
-                logging.error(f"No known unit found! Got: {measurement_unit}")
-                return
+            # check if we got a proper measurement
+            measurement_stabilized = measured["control"] & (1 << 5)
+            impedance_available = measured["control"] & (1 << 1)
 
-            # parse received bytes
-            impedance = int((data[24:26] + data[22:24]), 16)
-            measurement_date = f"{swapi16(data, 8, 12)}-{int((data[12:14]), 16)}-{int((data[14:16]), 16)}"
-            measurement_time = f"{int((data[16:18]), 16)}:{int((data[18:20]), 16)}:{int((data[20:22]), 16)}"
-            dt = datetime.strptime(f"{measurement_date} {measurement_time}", "%Y-%m-%d %H:%M:%S")
+            # pick unit
+            unit = UNITS.get(measured["unit_id"], None)
+            # calc weight based on unit
+            weight = measured["weight"] / 100 / 2 if measured["unit_id"] == 2 else measured["weight"] / 100
 
-            # fake data for testing
-            # measurement_weight = 8.05
-            # impedance = 1337
+            if not all([measurement_stabilized, unit]):
+                logging.warning(
+                    f"missing data! measurement_weight: {weight} | unit: {unit} | impedance: {measured['impedance']}"
+                )
+                continue
 
-            if current_user := find_user(measurement_weight):
+            # create datetime
+            measurement_datetime = datetime(
+                measured["year"], measured["month"], measured["day"], measured["hour"], measured["min"], measured["sec"]
+            )
+
+            if user := find_user(weight):
+
                 bm = xbm.BodyMetrics(
-                    current_user[ATTRS.WEIGHT.value],
-                    current_user[ATTRS.HEIGHT.value],
-                    current_user[ATTRS.AGE.value],
-                    current_user[ATTRS.SEX.value],
-                    impedance,
+                    user[ATTRS.WEIGHT.value],
+                    user[ATTRS.HEIGHT.value],
+                    user[ATTRS.AGE.value],
+                    user[ATTRS.SEX.value],
+                    measured["impedance"],
                 )
 
-                # check if we got everything we need
-                if not all([dt, impedance, (impedance > 0 and impedance < 3000), measurement_weight, unit]):
-                    logging.warning(
-                        f"missing data! measurement_weight: {measurement_weight} | "
-                        f"unit: {unit} | dt: {dt} | impedance: {impedance}"
-                    )
-                    return
+                attributes = {
+                    ATTRS.USER.value: user[ATTRS.USER.value],
+                    ATTRS.AGE.value: user[ATTRS.AGE.value],
+                    ATTRS.SEX.value: user[ATTRS.SEX.value],
+                    ATTRS.HEIGHT.value: user[ATTRS.HEIGHT.value],
+                    ATTRS.WEIGHT.value: f"{weight:.2f}",
+                    ATTRS.UNIT.value: unit,
+                    ATTRS.BASAL_METABOLISM.value: f"{bm.get_bmr():.2f}",
+                    ATTRS.VISCERAL_FAT.value: f"{bm.getVisceralFat():.2f}",
+                    ATTRS.BMI.value: f"{bm.getBMI():.2f}",
+                    ATTRS.TIMESTAMP.value: measurement_datetime.isoformat(),
+                }
 
-                plugin_data.update(
-                    {
-                        "name": PLUGIN_NAME,
-                        "sensors": [
-                            {
-                                "name": f"{device_name} {current_user[ATTRS.USER.value]}",
-                                "value_template": "{{value_json." + ATTRS.WEIGHT.value + "}}",
-                                "entity_type": ATTRS.WEIGHT,
-                                "own_state_topic": True,
-                            },
-                        ],
-                        "attributes": {
-                            ATTRS.USER.value: current_user[ATTRS.USER.value],
-                            ATTRS.AGE.value: current_user[ATTRS.AGE.value],
-                            ATTRS.SEX.value: current_user[ATTRS.SEX.value],
-                            ATTRS.HEIGHT.value: current_user[ATTRS.HEIGHT.value],
-                            ATTRS.WEIGHT.value: str(round(measurement_weight, 2)),
-                            ATTRS.UNIT.value: unit,
-                            ATTRS.IMPEDANCE.value: impedance,
-                            ATTRS.BASAL_METABOLISM.value: f"{bm.get_bmr():.2f}",
-                            ATTRS.VISCERAL_FAT.value: f"{bm.getVisceralFat():.2f}",
-                            ATTRS.BMI.value: f"{bm.getBMI():.2f}",
+                if impedance_available:
+                    attributes.update(
+                        {
                             ATTRS.WATER.value: f"{bm.getWaterPercentage():.2f}",
                             ATTRS.BONE_MASS.value: f"{bm.getBoneMass():.2f}",
                             ATTRS.BODY_FAT.value: f"{bm.getFatPercentage():.2f}",
                             ATTRS.LEAN_BODY_MASS.value: f"{bm.get_lbm_coefficient():.2f}",
                             ATTRS.MUSCLE_MASS.value: f"{bm.getMuscleMass():.2f}",
                             ATTRS.PROTEIN.value: f"{bm.getProteinPercentage():.2f}",
-                            ATTRS.TIMESTAMP.value: dt.isoformat(),
-                        },
+                        }
+                    )
+
+                plugin_data.update(
+                    {
+                        "name": PLUGIN_NAME,
+                        "sensors": [
+                            {
+                                "name": f"{device_name} {user[ATTRS.USER.value]}",
+                                "value_template": "{{value_json." + ATTRS.WEIGHT.value + "}}",
+                                "entity_type": ATTRS.WEIGHT,
+                                "own_state_topic": True,
+                            },
+                        ],
+                        "attributes": attributes,
                     }
                 )
 
