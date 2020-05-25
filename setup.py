@@ -14,15 +14,24 @@ readme = ''
 setup(
     long_description=readme,
     name='miblepy',
-    version='0.4.4',
+    version='0.4.5',
     description='miblepy fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker in a coordinated, sequential manner.',
     python_requires='==3.*,>=3.8.0',
+    project_urls={
+        "homepage": "https://github.com/benleb/miblepy",
+        "repository": "https://github.com/benleb/miblepy"
+    },
     author='Ben Lebherz',
     author_email='git@benleb.de',
     license='MIT',
     keywords='bluetooth smart-home sensor xiaomi home-assistant',
     classifiers=[
-        'Intended Audience :: Developers', 'Programming Language :: Python :: 3'
+        'Development Status :: 4 - Beta', 'Environment :: Console',
+        'Intended Audience :: Developers', 'Intended Audience :: Education',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8', 'Topic :: Home Automation'
     ],
     entry_points={"console_scripts": ["mible = miblepy.mible.cli:cli"]},
     packages=[
