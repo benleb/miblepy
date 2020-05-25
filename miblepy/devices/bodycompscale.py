@@ -98,9 +98,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
 
             # check if we got a proper measurement
             if not all([measurement_stabilized, unit]):
-                logging.warning(
-                    f"missing data! measurement_weight: {weight} | unit: {unit} | impedance: {measured['impedance']}"
-                )
+                logging.debug(f"missing data! weight: {weight} | unit: {unit} | impedance: {measured['impedance']}")
                 continue
 
             # create datetime
