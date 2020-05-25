@@ -32,7 +32,7 @@ DATA_KEYS = (
 
 
 def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
-    """Get data from one Sensor."""
+    """Get data from device."""
 
     device_name = kwargs.get("alias", None)
     users: List[Dict[str, Union[str, int, float, date]]] = kwargs.get("users", [])
@@ -62,10 +62,10 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
 
     def handleDiscovery(dev: ScanEntry, new_dev: bool, new_data: bool) -> None:
 
-        if not dev.addr == mac.lower() and new_dev:
+        if not dev.addr == mac.lower() or not new_dev or not new_data:
             return
 
-        for (sdid, desc, data) in dev.getScanData():
+        for (sdid, _, data) in dev.getScanData():
 
             # Mi Body Composition Scale 2 (XMTZC05HM) / Xiaomi Scale 2 (XMTZC02HM)
             if not data.startswith("1b18") or sdid != 22:

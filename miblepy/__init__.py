@@ -289,7 +289,7 @@ class Miblepy:
 
         return f"{device_topic}{f'_{suffix}' if suffix else ''}"
 
-    def _get_state_topic(self, sensor_config: DeviceConfig, short_mac: str, name: Optional[str]) -> str:
+    def _get_state_topic(self, sensor_config: DeviceConfig) -> str:
         """Construct state topic to publish to."""
         device_topic = self._get_device_topic(sensor_config, None)
 
@@ -301,7 +301,7 @@ class Miblepy:
 
     def fetch(self, sensor_config: DeviceConfig) -> Dict[str, Any]:
         """Get data from one Sensor."""
-        logging.info(f"· {hl(sensor_config.name)} ({sensor_config.mac}): fetching data from sensor...")
+        logging.info(f"· {hl(sensor_config.name)} ({sensor_config.mac}): fetching data from device...")
 
         data: Dict[str, Any] = {}
 
@@ -325,14 +325,14 @@ class Miblepy:
         if not data:
             logging.info(
                 f"· {hl(sensor_config.name)}: no data received from plugin "
-                f"{hl(device_plugin.__name__.rsplit('.', 1)[1])} for device "
-                f"{hl(sensor_config.name)} ({sensor_config.mac})!"
+                f"{hl(device_plugin.__name__.rsplit('.', 1)[1])} "
+                f"for device {hl(sensor_config.name)} ({sensor_config.mac})!"
             )
             return data
 
         entity_list = data.get("sensors", []) + data.get("binary_sensors", [])
 
-        state_topic = self._get_state_topic(sensor_config, sensor_config.short_mac, None)
+        state_topic = self._get_state_topic(sensor_config)
         state_published = False
 
         for entity in entity_list:
@@ -395,7 +395,7 @@ class Miblepy:
 
             # if this is not the first try: wait some time before trying again
             if retry_count > 1:
-                logging.warning(
+                logging.info(
                     f"try {retry_count}/{self.config.max_retries} for "
                     f"{', '.join((hl(str(sensor.alias)) for sensor in sensors_list))} in {hl(timeout)}s"
                 )
@@ -439,12 +439,20 @@ class Miblepy:
 
             sensors_list = failed_sensors_list
 
-        logging.getLogger().setLevel(logging.INFO)
-        logging.info(
-            f"successfully fetched data from {hl(len(self.config.sensors) - len(failed_sensors_list))} "
-            f"sensors | {hl(len(failed_sensors_list))} failed: "
-            f"{', '.join((hl(str(sensor.alias)) for sensor in sensors_list))}"
+        # build summary message
+        result_message = (
+            f"successfully fetched data from {hl(len(self.config.sensors) - len(failed_sensors_list))} devices"
         )
+
+        # check if have failed ones
+        if failed_sensors_list:
+            result_message += (
+                f" | {hl(len(failed_sensors_list))} failed (after {retry_count - 1} retries): "
+                f"{', '.join((hl(str(sensor.alias)) for sensor in sensors_list))}"
+            )
+
+        logging.getLogger().setLevel(logging.INFO)
+        logging.info(result_message)
 
         # return sensors that could not be processed after max_retries
         return failed_sensors_list
