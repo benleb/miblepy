@@ -29,11 +29,14 @@ class BodyMetrics:
         # Check for potential out of boundaries
         if self.height > LIMIT_HEIGHT:
             raise ValueError(f"Height too high ({self.height} > LIMIT_HEIGHT)")
-        elif self.weight < 1 or weight > LIMIT_WEIGHT:
+
+        if self.weight < 1 or weight > LIMIT_WEIGHT:
             raise ValueError(f"Weight too low/high (1kg > {self.weight} > {LIMIT_WEIGHT})")
-        elif self.age > LIMIT_AGE:
+
+        if self.age > LIMIT_AGE:
             raise ValueError(f"Age too high ({self.age} > {LIMIT_AGE})")
-        # elif self.impedance > LIMIT_IMPEDANCE:
+
+        # if self.impedance > LIMIT_IMPEDANCE:
         #     raise ValueError(f"Impedance too high ({self.impedance} > {LIMIT_IMPEDANCE})")
 
     # set the value to a boundary if it overflows
@@ -43,10 +46,11 @@ class BodyMetrics:
     ) -> Union[int, float]:
         if value < minimum:
             return minimum
-        elif value > maximum:
+
+        if value > maximum:
             return maximum
-        else:
-            return value
+
+        return value
 
     # lean body mass coefficient (with impedance)
     def get_lbm_coefficient(self) -> Union[int, float]:
