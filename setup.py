@@ -22,7 +22,7 @@ if os.path.exists(readme_path):
 setup(
     long_description=readme,
     name='miblepy',
-    version='0.4.5',
+    version='0.4.6',
     description='miblepy fetches data from various (Xiaomi/Mijia/Mi) Bluetooth LE devices and push it to a MQTT broker in a coordinated, sequential manner.',
     python_requires='==3.*,>=3.8.0',
     project_urls={
