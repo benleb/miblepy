@@ -1,9 +1,11 @@
 __version__ = "0.4.5"
 
 import importlib
+import inspect
 import json
 import logging
 import os
+import pkgutil
 import time
 
 from datetime import datetime
@@ -17,6 +19,7 @@ from tomlkit import parse
 from tomlkit.toml_document import TOMLDocument
 
 from bluepy import btle
+from miblepy.deviceplugin import MibleDevicePlugin
 
 
 DEVICE_PREFIX = "miblepy_"
@@ -305,18 +308,14 @@ class Miblepy:
 
         data: Dict[str, Any] = {}
 
-        try:
-            device_plugin = importlib.import_module(f"miblepy.devices.{sensor_config.device_type}")
-        except (ModuleNotFoundError, ImportError) as error:
-            logging.exception(
-                f"· {hl(sensor_config.name)}: required module {sensor_config.device_type} not found: {error}"
-            )
+        if miblepy_plugin := get_plugins().get(sensor_config.device_type):
+            plugin_class = miblepy_plugin.get("class")
+            plugin: MibleDevicePlugin = plugin_class(sensor_config.mac, self.config.interface, **sensor_config.config)
+        else:
             return data
 
         try:
-            data = device_plugin.fetch_data(  # type: ignore
-                sensor_config.mac, self.config.interface, **sensor_config.config
-            )
+            data = plugin.fetch_data(**sensor_config.config)
         except btle.BTLEDisconnectError as error:
             logging.info(f"· {hl(sensor_config.name)}: ble disconnected: {error}")
         except Exception as error:
@@ -325,7 +324,7 @@ class Miblepy:
         if not data:
             logging.info(
                 f"· {hl(sensor_config.name)}: no data received from plugin "
-                f"{hl(device_plugin.__name__.rsplit('.', 1)[1])} "
+                f"{hl(plugin.plugin_name)} "
                 f"for device {hl(sensor_config.name)} ({sensor_config.mac})!"
             )
             return data
@@ -456,3 +455,37 @@ class Miblepy:
 
         # return sensors that could not be processed after max_retries
         return failed_sensors_list
+
+
+def get_plugins() -> Dict[str, Any]:
+    """Discover available device plugins in plugin dir."""
+    plugin_path = os.path.join(os.path.dirname(__file__), "devices")
+    modules = pkgutil.iter_modules(path=[plugin_path])
+
+    plugins: Dict[str, Any] = {}
+
+    for loader, mod_name, ispkg in modules:
+
+        try:
+            imported_package = importlib.import_module(f"miblepy.devices.{mod_name}")
+
+            for (key, value) in inspect.getmembers(imported_package, inspect.isclass):
+
+                if issubclass(value, MibleDevicePlugin) & (value is not MibleDevicePlugin):
+
+                    plugins.update(
+                        {
+                            mod_name: {
+                                "module": value.__module__,
+                                "class_name": value.__name__,
+                                "class": getattr(importlib.import_module(value.__module__), value.__name__),
+                                "config_key": mod_name,
+                            }
+                        }
+                    )
+
+        except (ModuleNotFoundError, ImportError) as error:
+            print(error)
+            pass
+
+    return plugins

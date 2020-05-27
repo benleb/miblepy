@@ -11,6 +11,7 @@ import miblepy.devices.xbm as xbm
 
 from bluepy.btle import BTLEDisconnectError, BTLEManagementError, DefaultDelegate, ScanEntry, Scanner
 from miblepy import ATTRS
+from miblepy.deviceplugin import MibleDevicePlugin
 
 
 PLUGIN_NAME = "BodyCompScale"
@@ -31,22 +32,44 @@ DATA_KEYS = (
 )
 
 
-def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
-    """Get data from device."""
+class BodyCompScale(MibleDevicePlugin, DefaultDelegate):
 
-    device_name = kwargs.get("alias", None)
-    users: List[Dict[str, Union[str, int, float, date]]] = kwargs.get("users", [])
-    plugin_data: Dict[str, Any] = {}
+    plugin_id = "bodycompscale"
+    plugin_name = "BodyCompScale"
+    plugin_description = "suports the Mi Body Composition Scale 2 (XMTZC05HM) / Xiaomi Scale 2 (XMTZC02HM)"
 
-    def find_user(weight: float) -> Dict[str, Any]:
-        def get_age(birthdate: Any) -> int:
-            today = date.today()
-            return int(today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day)))
+    def __init__(self, mac: str, interface: str, **kwargs: Any):
+        self.users: List[Dict[str, Union[str, int, float, date]]] = kwargs.get("users", [])
+        self.scanner: Scanner = None
+        self.data: Dict[str, Any] = {}
+
+        super().__init__(mac, interface, **kwargs)
+
+    def fetch_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Get data from device."""
+
+        # attach notification handler
+        self.scanner = Scanner(iface=int(self.interface.replace("hci", ""))).withDelegate(self)
+
+        try:
+            self.scanner.scan(SCAN_TIMEOUT)
+        except BTLEDisconnectError as error:
+            logging.error(f"btle disconnected: {error}")
+        except BTLEManagementError as error:
+            logging.error(f"(temporary) bluetooth connection error: {error}")
+
+        return self.data
+
+    def get_age(self, birthdate: Any) -> int:
+        today = date.today()
+        return int(today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day)))
+
+    def find_user(self, weight: float) -> Dict[str, Any]:
 
         current_user: Dict[str, Any] = {}
 
         # determine current user by weight
-        for user in users:
+        for user in self.users:
 
             if not all([user["weightOver"], user["weightBelow"]]):
                 continue
@@ -55,14 +78,14 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
                 # current user found, fill profile values and exit
                 current_user = user
                 current_user[ATTRS.WEIGHT.value] = weight
-                current_user[ATTRS.AGE.value] = get_age(current_user["birthdate"])
+                current_user[ATTRS.AGE.value] = self.get_age(current_user["birthdate"])
                 break
 
         return current_user
 
-    def handleDiscovery(dev: ScanEntry, new_dev: bool, new_data: bool) -> None:
+    def handleDiscovery(self, dev: ScanEntry, new_dev: bool, new_data: bool) -> None:
 
-        if not dev.addr == mac.lower() or not new_dev or not new_data:
+        if not dev.addr == self.mac.lower() or not new_dev or not new_data:
             return
 
         for (sdid, _, data) in dev.getScanData():
@@ -107,7 +130,7 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
             )
 
             # find the current user based on its weight
-            if user := find_user(weight):
+            if user := self.find_user(weight):
 
                 bm = xbm.BodyMetrics(
                     user[ATTRS.WEIGHT.value],
@@ -143,12 +166,12 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
                         }
                     )
 
-                plugin_data.update(
+                self.data.update(
                     {
                         "name": PLUGIN_NAME,
                         "sensors": [
                             {
-                                "name": f"{device_name} {user[ATTRS.USER.value]}",
+                                "name": f"{self.alias} {user[ATTRS.USER.value]}",
                                 "value_template": "{{value_json." + ATTRS.WEIGHT.value + "}}",
                                 "entity_type": ATTRS.WEIGHT,
                                 "own_state_topic": True,
@@ -157,17 +180,3 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
                         "attributes": attributes,
                     }
                 )
-
-    # attach notification handler
-    delegate = DefaultDelegate()
-    delegate.handleDiscovery = handleDiscovery
-    scanner: Scanner = Scanner(iface=int(interface.replace("hci", ""))).withDelegate(delegate)
-
-    try:
-        scanner.scan(SCAN_TIMEOUT)
-    except BTLEDisconnectError as error:
-        logging.error(f"btle disconnected: {error}")
-    except BTLEManagementError as error:
-        logging.error(f"(temporary) bluetooth connection error: {error}")
-
-    return plugin_data

@@ -2,10 +2,12 @@
 
 import click
 
-from miblepy import CONFIG_FILE, MAX_RETRIES, Miblepy, __name__ as mbp_name, __version__ as mbp_version, hl
+from miblepy import CONFIG_FILE, MAX_RETRIES, Miblepy, __name__ as mbp_name, __version__ as mbp_version, get_plugins, hl
 
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+version_message = f"{mbp_name} {hl(mbp_version)} | https://github.com/benleb/miblepy | @benleb"
 
 
 @click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
@@ -26,7 +28,7 @@ def cli(ctx: click.Context, version: bool, verbose: bool, debug: bool) -> None:
     if not ctx.invoked_subcommand:
 
         if version:
-            click.echo(f"{mbp_name} {hl(mbp_version)} | https://github.com/benleb/miblepy | @benleb")
+            click.echo(version_message)
             exit(0)
 
         click.echo(ctx.get_help())
@@ -42,6 +44,16 @@ def cli(ctx: click.Context, version: bool, verbose: bool, debug: bool) -> None:
 )
 def fetch(ctx: click.Context, config: str, retries: int) -> None:
     Miblepy(config_file_path=config, retries=retries, verbose=ctx.obj["verbose"], debug=ctx.obj["debug"]).go()
+
+
+@cli.command()
+@click.pass_context
+def plugins(ctx: click.Context) -> None:
+    click.echo(version_message)
+    click.echo()
+
+    for plugin_id, plugin in get_plugins().items():
+        click.echo(f"{hl(plugin['class'].plugin_name):>24} · {plugin['class'].plugin_description}")
 
 
 if __name__ == "__main__":

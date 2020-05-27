@@ -1,44 +1,56 @@
-# supported devices
-#   Mijia LCD Temperature Humidity Sensor (LYWSD03MMC)
-
 from datetime import datetime
 from typing import Any, Dict
 
 from bluepy.btle import DefaultDelegate, Peripheral
 from miblepy import ATTRS
+from miblepy.deviceplugin import MibleDevicePlugin
 
 
-PLUGIN_NAME = "LYWSD03MMC"
+class LYWSD03MMC(MibleDevicePlugin, DefaultDelegate):
 
+    plugin_id = "lywsd03mmc"
+    plugin_name = "LYWSD03MMC"
+    plugin_description = "suports the Temperature/Humidity LCD BLE sensor LYWSD03MMC from Mi/Xiaomi"
 
-def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
-    """Get data from one Sensor."""
+    def __init__(self, mac: str, interface: str, **kwargs: Any):
+        self.peripheral: Peripheral = None
+        self.data: Dict[str, Any] = {}
 
-    device_name = kwargs.get("alias", None)
+        super().__init__(mac, interface, **kwargs)
 
-    plugin_data: Dict[str, Any] = {}
+    def fetch_data(self, **kwargs: Any) -> Dict[str, Any]:
+        # connect to device
+        self.peripheral = Peripheral(self.mac, iface=int(self.interface.replace("hci", "")))
 
-    # connect to device
-    peripheral = Peripheral(mac, iface=int(interface.replace("hci", "")))
+        # attach notification handler
+        self.peripheral.setDelegate(self)
 
-    def handleNotification(cHandle: int, data: bytes) -> None:
+        # safe power: https://github.com/JsBergbau/MiTemperature2/issues/18#issuecomment-590986874
+        self.peripheral.writeCharacteristic(0x46, bytes([0xF4, 0x01, 0x00]), withResponse=True)
+
+        if self.peripheral.waitForNotifications(10000):
+            self.peripheral.disconnect()
+
+        return self.data
+
+    def handleNotification(self, cHandle: int, data: bytes) -> None:
         if cHandle != 0x36:
             return
 
         # parse data
         voltage = int.from_bytes(data[3:5], byteorder="little") / 1000
 
-        plugin_data.update(
+        self.data.update(
             {
-                "name": PLUGIN_NAME,
+                "name": self.plugin_name,
                 "sensors": [
                     {
-                        "name": f"{device_name} {ATTRS.TEMPERATURE.value.capitalize()}",
+                        "name": f"{self.alias} {ATTRS.TEMPERATURE.value.capitalize()}",
                         "value_template": "{{value_json." + ATTRS.TEMPERATURE.value + "}}",
                         "entity_type": ATTRS.TEMPERATURE,
                     },
                     {
-                        "name": f"{device_name} {ATTRS.HUMIDITY.value.capitalize()}",
+                        "name": f"{self.alias} {ATTRS.HUMIDITY.value.capitalize()}",
                         "value_template": "{{value_json." + ATTRS.HUMIDITY.value + "}}",
                         "entity_type": ATTRS.HUMIDITY,
                     },
@@ -54,20 +66,4 @@ def fetch_data(mac: str, interface: str, **kwargs: Any) -> Dict[str, Any]:
             }
         )
 
-        peripheral.disconnect()
-
-    # attach notification handler
-    delegate = DefaultDelegate()
-    delegate.handleNotification = handleNotification
-    peripheral.setDelegate(delegate)
-
-    # subscribe to notifications - seems not needed ¯\_(ツ)_/¯
-    # peripheral.writeCharacteristic(0x38, bytes([0x01, 0x00]), withResponse=True)
-
-    # safe power: https://github.com/JsBergbau/MiTemperature2/issues/18#issuecomment-590986874
-    peripheral.writeCharacteristic(0x46, bytes([0xF4, 0x01, 0x00]), withResponse=True)
-
-    if peripheral.waitForNotifications(10000):
-        peripheral.disconnect()
-
-    return plugin_data
+        self.peripheral.disconnect()
