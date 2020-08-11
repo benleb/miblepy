@@ -20,5 +20,5 @@ jobs:
       - name: build the image
         run: |
           docker buildx build --push \
-            --tag benleb/mibleüy:latest \
+            --tag benleb/miblepy:latest \
             --platform linux/amd64,linux/arm64,linux/arm/v7 .
