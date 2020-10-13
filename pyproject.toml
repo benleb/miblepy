@@ -28,7 +28,7 @@ tomlkit = "^0.6.0"
 click = "^7.1.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "==5.*,>=5.2.0"
+pytest = "==6.*"
 black = "==19.*,>=19.10.0.b0"
 mypy = "==0.*,>=0.770.0"
 isort = "==4.*,>=4.3.21"
